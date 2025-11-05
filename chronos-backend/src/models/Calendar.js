@@ -11,7 +11,7 @@ const calendarSchema = new Schema(
 
     owner: { type: Schema.Types.ObjectId, ref: "User", required: true },
 
-    // Участники календаря (члены). Храним как ObjectId[], без поддоков — совместимо со старыми данными.
+    // Участники (старый формат — массив ObjectId, без поддоков)
     members: [{ type: Schema.Types.ObjectId, ref: "User" }],
 
     // Роли участников: Map<userIdString, 'member'|'editor'>
@@ -21,11 +21,20 @@ const calendarSchema = new Schema(
       default: {},
     },
 
+    // Персональный статус уведомлений: Map<userIdString, boolean>
+    // true = этот пользователь получает уведомления по событиям этого календаря
+    // По умолчанию считаем true, если записи нет (см. контроллер).
+    notifyActive: {
+      type: Map,
+      of: Boolean,
+      default: {},
+    },
+
     // Флаги/типы календарей
-    isMain: { type: Boolean, default: false },        // главный личный
-    isSystem: { type: Boolean, default: false },      // системный (нельзя CRUD/share)
+    isMain: { type: Boolean, default: false },
+    isSystem: { type: Boolean, default: false },
     systemType: { type: String, enum: ["holidays"], default: undefined },
-    countryCode: { type: String, trim: true },        // для системных календарей, например "UA"
+    countryCode: { type: String, trim: true },
   },
   { timestamps: true }
 );

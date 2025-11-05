@@ -1,3 +1,4 @@
+// chronos-backend/src/middlewares/calendarAcl.middleware.js
 import Calendar from "../models/Calendar.js";
 
 export async function loadCalendar(req, res, next) {
@@ -15,9 +16,8 @@ export async function loadCalendar(req, res, next) {
 function isMemberOf(cal, uid) {
   const U = String(uid);
   return (cal.members || []).some((m) => {
-    // поддержим оба формата на всякий случай
-    if (m && typeof m === "object" && m.user) return String(m.user) === U;
-    return String(m) === U; // старый формат [ObjectId]
+    if (m && typeof m === "object" && m.user) return String(m.user) === U; // совместимость со старым форматом
+    return String(m) === U;
   });
 }
 
@@ -45,6 +45,15 @@ export function isCalendarOwnerOrEditor(req, res, next) {
 
   if (String(cal.owner) === uid) return next();
 
+  // Проверяем новую схему ролей через Map memberRoles
+  const rolesMap =
+    cal.memberRoles instanceof Map
+      ? cal.memberRoles
+      : new Map(Object.entries(cal.memberRoles || {}));
+
+  if (rolesMap.get(uid) === "editor") return next();
+
+  // Фоллбек на старый формат с объектами в members
   const mem = (cal.members || []).find((m) =>
     String(m && m.user ? m.user : m) === uid
   );

@@ -1,3 +1,4 @@
+// chronos-backend/src/routes/calendar.routes.js
 import { Router } from "express";
 import { requireAuth } from "../middlewares/auth.middleware.js";
 import {
@@ -12,6 +13,8 @@ import {
   leaveCalendar,
   updateMemberRole,
   listCalendarInvites,
+  getCalendarStatus,
+  setCalendarStatus,
 } from "../controllers/calendar.controller.js";
 import {
   loadCalendar,
@@ -34,6 +37,10 @@ router.post("/", createCalendar);
 router.get("/:id", loadCalendar, canAccessCalendar, getCalendar);
 router.put("/:id", loadCalendar, isCalendarOwnerOrEditor, updateCalendar);
 router.delete("/:id", loadCalendar, isCalendarOwner, deleteCalendar);
+
+// Персональный статус уведомлений (для текущего пользователя)
+router.get("/:id/status", loadCalendar, canAccessCalendar, getCalendarStatus);
+router.patch("/:id/status", loadCalendar, canAccessCalendar, setCalendarStatus);
 
 // Шаринг
 router.post("/:id/share", loadCalendar, isCalendarOwner, shareCalendar);

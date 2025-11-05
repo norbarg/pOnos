@@ -11,19 +11,44 @@ import {
 
 const ObjectId = (v) => new mongoose.Types.ObjectId(v);
 
+// ----- helpers -----
+
+function rolesMapFrom(cal) {
+  return cal.memberRoles instanceof Map
+    ? cal.memberRoles
+    : new Map(Object.entries(cal.memberRoles || {}));
+}
+
+function notifyMapFrom(cal) {
+  return cal.notifyActive instanceof Map
+    ? cal.notifyActive
+    : new Map(Object.entries(cal.notifyActive || {}));
+}
+
 // Определяем роль текущего пользователя внутри календаря
 function getRole(cal, uidStr) {
   if (cal.owner?.toString() === uidStr) return "owner";
-  const rolesMap = cal.memberRoles instanceof Map ? cal.memberRoles : new Map(Object.entries(cal.memberRoles || {}));
+  const rolesMap = rolesMapFrom(cal);
   if (rolesMap.get(uidStr) === "editor") return "editor";
-  if (cal.members?.some((m) => m.toString() === uidStr)) return "member";
+  if ((cal.members || []).some((m) => m.toString() === uidStr)) return "member";
   return "none";
+}
+
+// Активность уведомлений для пользователя (по умолчанию true для owner/member)
+function isActiveForUser(cal, uidStr) {
+  const nmap = notifyMapFrom(cal);
+  if (nmap.has(uidStr)) return !!nmap.get(uidStr);
+
+  // дефолт: владельцу и участнику — true
+  if (cal.owner?.toString() === uidStr) return true;
+  if ((cal.members || []).some((m) => m.toString() === uidStr)) return true;
+  return false;
 }
 
 // Приведение календаря к удобному ответу
 function toCalendarResponse(cal, currentUserId) {
   const uidStr = String(currentUserId);
-  const rolesMap = cal.memberRoles instanceof Map ? cal.memberRoles : new Map(Object.entries(cal.memberRoles || {}));
+  const rolesMap = rolesMapFrom(cal);
 
   const membersDetailed = (cal.members || []).map((u) => {
     const id = u.toString();
@@ -46,6 +71,9 @@ function toCalendarResponse(cal, currentUserId) {
     _membersDetailed: membersDetailed,
     role: getRole(cal, uidStr),
     membersCount: 1 + (cal.members?.length || 0),
+
+    // новый флаг — персональный статус уведомлений для текущего пользователя
+    active: isActiveForUser(cal, uidStr),
   };
 }
 
@@ -85,6 +113,7 @@ export async function createCalendar(req, res) {
       owner: uid,
       members: [],
       memberRoles: {},
+      notifyActive: { [uid]: true }, // владелец по дефолту активен
       isMain: false,
       isSystem: false,
     });
@@ -167,11 +196,12 @@ export async function shareCalendar(req, res) {
     const user = await User.findOne({ email }).lean();
 
     if (user) {
-      // Добавляем в members и выдаём роль
+      // Добавляем в members и роль, плюс включаем notifyActive для него
       const uId = user._id.toString();
       const update = { $addToSet: { members: ObjectId(uId) } };
       const set = {};
       set[`memberRoles.${uId}`] = role;
+      set[`notifyActive.${uId}`] = true;
       update.$set = set;
 
       const updated = await Calendar.findByIdAndUpdate(cal._id, update, { new: true });
@@ -186,7 +216,6 @@ export async function shareCalendar(req, res) {
       role,
     });
 
-    // Текущий календарь без изменений
     const fresh = await Calendar.findById(cal._id);
     return res.json({
       calendar: toCalendarResponse(fresh, uid),
@@ -212,7 +241,7 @@ export async function listMembers(req, res) {
   const owner = await User.findById(cal.owner).lean();
 
   const members = await User.find({ _id: { $in: cal.members || [] } }).lean();
-  const rolesMap = cal.memberRoles instanceof Map ? cal.memberRoles : new Map(Object.entries(cal.memberRoles || {}));
+  const rolesMap = rolesMapFrom(cal);
 
   const ownerDto = {
     id: owner._id.toString(),
@@ -246,6 +275,7 @@ export async function updateMemberRole(req, res) {
 
     const set = {};
     set[`memberRoles.${userId}`] = role;
+    // notifyActive оставляем как есть; если пусто — по умолчанию считается true.
 
     const updated = await Calendar.findByIdAndUpdate(
       cal._id,
@@ -276,6 +306,7 @@ export async function removeMember(req, res) {
 
     const unset = {};
     unset[`memberRoles.${userId}`] = 1;
+    unset[`notifyActive.${userId}`] = 1;
 
     const updated = await Calendar.findByIdAndUpdate(
       cal._id,
@@ -301,13 +332,13 @@ export async function leaveCalendar(req, res) {
     if (cal.owner.toString() === uid) {
       return res.status(400).json({ error: "owner-cannot-leave" });
     }
-    // Системные календарей не покидаем (они принадлежат пользователю и без members)
     if (cal.isSystem) {
       return res.status(400).json({ error: "system-calendar-immutable" });
     }
 
     const unset = {};
     unset[`memberRoles.${uid}`] = 1;
+    unset[`notifyActive.${uid}`] = 1;
 
     const updated = await Calendar.findByIdAndUpdate(
       cal._id,
@@ -364,6 +395,39 @@ export async function revokeCalendarInvite(req, res) {
     return res.json({ ok: true, invite: { id: inv._id.toString(), status: inv.status } });
   } catch (err) {
     console.error("revokeCalendarInvite.error:", err);
+    return res.status(500).json({ error: "internal" });
+  }
+}
+
+// ===== Personal status (notifications on/off for current user) =====
+
+export async function getCalendarStatus(req, res) {
+  const uid = req.user.id;
+  const cal = req.calendar;
+  return res.json({ active: isActiveForUser(cal, String(uid)) });
+}
+
+export async function setCalendarStatus(req, res) {
+  try {
+    const uid = String(req.user.id);
+    const cal = req.calendar;
+
+    // Разрешаем менять статус даже для системных календарей (это личная настройка)
+    let { active } = req.body || {};
+    const next = active === true || active === "true";
+
+    const set = {};
+    set[`notifyActive.${uid}`] = next;
+
+    const updated = await Calendar.findByIdAndUpdate(
+      cal._id,
+      { $set: set },
+      { new: true }
+    );
+
+    return res.json({ active: isActiveForUser(updated, uid) });
+  } catch (err) {
+    console.error("setCalendarStatus.error:", err);
     return res.status(500).json({ error: "internal" });
   }
 }
