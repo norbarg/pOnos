@@ -1,309 +1,369 @@
+// chronos-backend/src/controllers/calendar.controller.js
 import mongoose from "mongoose";
 import Calendar from "../models/Calendar.js";
 import User from "../models/User.js";
 import Invitation from "../models/Invitation.js";
-import { createInvite } from "../services/invite.service.js";
+import {
+  createInvite,
+  resendInvite,
+  revokeInvite,
+} from "../services/invite.service.js";
 
-/* helpers */
+const ObjectId = (v) => new mongoose.Types.ObjectId(v);
 
-function normalizeMembersArray(members) {
-  const arr = members || [];
-  return arr.map((m) => {
-    if (m && typeof m === "object" && m.user) {
-      return { user: String(m.user), role: m.role || "member" };
-    }
-    return { user: String(m), role: "member" };
+// Определяем роль текущего пользователя внутри календаря
+function getRole(cal, uidStr) {
+  if (cal.owner?.toString() === uidStr) return "owner";
+  const rolesMap = cal.memberRoles instanceof Map ? cal.memberRoles : new Map(Object.entries(cal.memberRoles || {}));
+  if (rolesMap.get(uidStr) === "editor") return "editor";
+  if (cal.members?.some((m) => m.toString() === uidStr)) return "member";
+  return "none";
+}
+
+// Приведение календаря к удобному ответу
+function toCalendarResponse(cal, currentUserId) {
+  const uidStr = String(currentUserId);
+  const rolesMap = cal.memberRoles instanceof Map ? cal.memberRoles : new Map(Object.entries(cal.memberRoles || {}));
+
+  const membersDetailed = (cal.members || []).map((u) => {
+    const id = u.toString();
+    return { user: id, role: rolesMap.get(id) === "editor" ? "editor" : "member" };
   });
-}
 
-function findMemberRole(cal, uid) {
-  if (String(cal.owner) === String(uid)) return "owner";
-  const mem = normalizeMembersArray(cal.members).find((m) => m.user === String(uid));
-  return mem ? mem.role : "none";
-}
-
-function sanitizeCalendar(doc) {
-  if (!doc) return doc;
-  const {
-    _id, name, color, description, owner, members, isMain, isSystem, createdAt, updatedAt,
-  } = doc.toObject ? doc.toObject() : doc;
-  const mems = normalizeMembersArray(members);
   return {
-    id: String(_id),
-    name,
-    color,
-    description,
-    owner: String(owner),
-    members: mems.map((m) => m.user), // для обратной совместимости
-    isMain,
-    isSystem,
-    createdAt,
-    updatedAt,
-    _membersDetailed: mems,          // детально (id+role)
+    id: cal._id.toString(),
+    name: cal.name,
+    color: cal.color,
+    description: cal.description,
+    owner: cal.owner?.toString(),
+    members: (cal.members || []).map((m) => m.toString()),
+    isMain: !!cal.isMain,
+    isSystem: !!cal.isSystem,
+    systemType: cal.systemType,
+    countryCode: cal.countryCode,
+    createdAt: cal.createdAt,
+    updatedAt: cal.updatedAt,
+    _membersDetailed: membersDetailed,
+    role: getRole(cal, uidStr),
+    membersCount: 1 + (cal.members?.length || 0),
   };
 }
 
-function presentCalendar(doc, viewerId) {
-  const base = sanitizeCalendar(doc);
-  const role = findMemberRole(doc, viewerId);
-  const membersCount = base._membersDetailed.length + 1; // + owner
-  return { ...base, role, membersCount };
+function assertMutableCalendar(cal) {
+  if (cal.isSystem) {
+    const code = "system-calendar-immutable";
+    const err = new Error(code);
+    err.code = code;
+    throw err;
+  }
 }
 
-/* CRUD */
+// ===== CRUD =====
 
 export async function listMyCalendars(req, res) {
   const uid = req.user.id;
+  const calendars = await Calendar.find({
+    $or: [{ owner: uid }, { members: uid }],
+  }).lean();
 
-  // ВАЖНО: без { members: uid } (оно ломает каст при subdocs)
-  const list = await Calendar.find({
-    $or: [{ owner: uid }, { "members.user": uid }],
-  })
-    .sort({ createdAt: 1 })
-    .lean();
-
-  return res.json({ calendars: list.map((c) => presentCalendar(c, uid)) });
+  const dto = calendars.map((c) => toCalendarResponse(c, uid));
+  return res.json({ calendars: dto });
 }
 
 export async function createCalendar(req, res) {
-  const uid = req.user.id;
-  let { name, color, description } = req.body || {};
-  name = String(name || "").trim();
-  if (!name) return res.status(400).json({ error: "name is required" });
-  if (color) color = String(color).trim();
-
   try {
-    const created = await Calendar.create({
-      name,
-      color,
-      description,
+    const uid = req.user.id;
+    const { name, color, description } = req.body || {};
+    if (!name || !String(name).trim()) {
+      return res.status(400).json({ error: "name-required" });
+    }
+
+    const cal = await Calendar.create({
+      name: String(name).trim(),
+      color: color || "#3b82f6",
+      description: description?.trim() || undefined,
       owner: uid,
+      members: [],
+      memberRoles: {},
       isMain: false,
       isSystem: false,
-      members: [],
     });
-    return res.status(201).json({ calendar: presentCalendar(created, uid) });
-  } catch (e) {
-    if (e?.code === 11000) {
-      return res.status(409).json({ error: "calendar with this name already exists for owner" });
+
+    return res.json({ calendar: toCalendarResponse(cal, uid) });
+  } catch (err) {
+    if (err?.code === 11000) {
+      return res.status(409).json({ error: "duplicate-name" });
     }
-    return res.status(500).json({ error: "failed to create calendar" });
+    console.error("createCalendar.error:", err);
+    return res.status(500).json({ error: "internal" });
   }
 }
 
 export async function getCalendar(req, res) {
-  return res.json({ calendar: presentCalendar(req.calendar, req.user.id) });
+  const uid = req.user.id;
+  const cal = req.calendar; // загружен в loadCalendar
+  return res.json({ calendar: toCalendarResponse(cal, uid) });
 }
 
 export async function updateCalendar(req, res) {
-  const cal = req.calendar;
-  if (cal.isSystem) return res.status(400).json({ error: "system calendar is not editable" });
-
-  let { name, color, description } = req.body || {};
-  const patch = {};
-  if (typeof name !== "undefined") {
-    name = String(name).trim();
-    if (!name) return res.status(400).json({ error: "name cannot be empty" });
-    patch.name = name;
-  }
-  if (typeof color !== "undefined") patch.color = String(color || "").trim();
-  if (typeof description !== "undefined") patch.description = String(description || "").trim();
-
   try {
-    const updated = await Calendar.findByIdAndUpdate(cal._id, patch, { new: true, runValidators: true });
-    return res.json({ calendar: presentCalendar(updated, req.user.id) });
-  } catch (e) {
-    if (e?.code === 11000) {
-      return res.status(409).json({ error: "calendar with this name already exists for owner" });
+    const uid = req.user.id;
+    const cal = req.calendar;
+    assertMutableCalendar(cal);
+
+    const { name, color, description } = req.body || {};
+    const patch = {};
+    if (typeof name !== "undefined") patch.name = String(name).trim();
+    if (typeof color !== "undefined") patch.color = color;
+    if (typeof description !== "undefined") patch.description = description?.trim() || undefined;
+
+    const updated = await Calendar.findByIdAndUpdate(cal._id, patch, { new: true });
+    return res.json({ calendar: toCalendarResponse(updated, uid) });
+  } catch (err) {
+    if (err?.code === "system-calendar-immutable") {
+      return res.status(400).json({ error: "system-calendar-immutable" });
     }
-    return res.status(500).json({ error: "failed to update calendar" });
+    if (err?.code === 11000) {
+      return res.status(409).json({ error: "duplicate-name" });
+    }
+    console.error("updateCalendar.error:", err);
+    return res.status(500).json({ error: "internal" });
   }
 }
 
 export async function deleteCalendar(req, res) {
-  const cal = req.calendar;
-  if (cal.isMain) return res.status(400).json({ error: "cannot delete main calendar" });
-  if (cal.isSystem) return res.status(400).json({ error: "cannot delete system calendar" });
-  await Calendar.deleteOne({ _id: cal._id });
-  return res.json({ ok: true });
+  try {
+    const cal = req.calendar;
+    if (cal.isMain) {
+      return res.status(400).json({ error: "main-calendar-immutable" });
+    }
+    assertMutableCalendar(cal);
+
+    await Calendar.deleteOne({ _id: cal._id });
+    return res.json({ ok: true });
+  } catch (err) {
+    if (err?.code === "system-calendar-immutable") {
+      return res.status(400).json({ error: "system-calendar-immutable" });
+    }
+    console.error("deleteCalendar.error:", err);
+    return res.status(500).json({ error: "internal" });
+  }
 }
 
-/* Members & Roles */
+// ===== Sharing & Members =====
 
 export async function shareCalendar(req, res) {
-  const cal = req.calendar;
-  let { email, role } = req.body || {};
-  const normalizedEmail = String(email || "").trim().toLowerCase();
-  if (!normalizedEmail) return res.status(400).json({ error: "email is required" });
+  try {
+    const uid = req.user.id;
+    const cal = req.calendar;
+    assertMutableCalendar(cal);
 
-  if (!role) role = "member";
-  role = String(role).trim();
-  if (!["member", "editor"].includes(role)) {
-    return res.status(400).json({ error: "role must be 'member' or 'editor'" });
-  }
+    let { email, role } = req.body || {};
+    if (!email) return res.status(400).json({ error: "email-required" });
 
-  // 1) Зарегистрированный пользователь?
-  const user = await User.findOne({ email: normalizedEmail });
+    email = String(email).trim().toLowerCase();
+    role = (role === "editor" ? "editor" : "member");
 
-  if (user) {
-    if (String(user._id) === String(cal.owner)) {
-      return res.status(409).json({ error: "cannot share with the owner" });
+    const user = await User.findOne({ email }).lean();
+
+    if (user) {
+      // Добавляем в members и выдаём роль
+      const uId = user._id.toString();
+      const update = { $addToSet: { members: ObjectId(uId) } };
+      const set = {};
+      set[`memberRoles.${uId}`] = role;
+      update.$set = set;
+
+      const updated = await Calendar.findByIdAndUpdate(cal._id, update, { new: true });
+      return res.json({ calendar: toCalendarResponse(updated, uid) });
     }
 
-    const exists = await Calendar.findOne({
-      _id: cal._id,
-      "members.user": user._id,
-    }).lean();
+    // Пользователь не зарегистрирован — создаём инвайт
+    const inv = await createInvite({
+      calendarId: cal._id.toString(),
+      inviterId: uid,
+      email,
+      role,
+    });
 
-    if (exists) {
-      await Calendar.updateOne(
-        { _id: cal._id, "members.user": user._id },
-        { $set: { "members.$.role": role } }
-      );
-    } else {
-      await Calendar.updateOne(
-        { _id: cal._id },
-        { $addToSet: { members: { user: user._id, role } } }
-      );
+    // Текущий календарь без изменений
+    const fresh = await Calendar.findById(cal._id);
+    return res.json({
+      calendar: toCalendarResponse(fresh, uid),
+      invitation: {
+        id: inv._id.toString(),
+        email: inv.email,
+        role: inv.role,
+        status: inv.status,
+        expiresAt: inv.expiresAt,
+      },
+    });
+  } catch (err) {
+    if (err?.code === "system-calendar-immutable") {
+      return res.status(400).json({ error: "system-calendar-immutable" });
     }
-
-    const updated = await Calendar.findById(cal._id);
-    return res.json({ calendar: presentCalendar(updated, req.user.id) });
+    console.error("shareCalendar.error:", err);
+    return res.status(500).json({ error: "internal" });
   }
-
-  // 2) Не зарегистрирован — создаём инвайт
-  const inv = await createInvite({
-    calendarId: cal._id,
-    inviterId: req.user.id,
-    email: normalizedEmail,
-    role,
-  });
-
-  const updated = await Calendar.findById(cal._id);
-  return res.status(202).json({
-    calendar: presentCalendar(updated, req.user.id),
-    invitation: {
-      id: String(inv._id),
-      email: inv.email,
-      role: inv.role,
-      status: inv.status,
-      expiresAt: inv.expiresAt,
-    },
-  });
 }
 
 export async function listMembers(req, res) {
   const cal = req.calendar;
-  const norm = normalizeMembersArray(cal.members);
-  const ids = [String(cal.owner), ...norm.map((m) => m.user)].map((x) => new mongoose.Types.ObjectId(x));
+  const owner = await User.findById(cal.owner).lean();
 
-  const users = await User.find({ _id: { $in: ids } })
-    .select({ _id: 1, email: 1, name: 1 })
-    .lean();
+  const members = await User.find({ _id: { $in: cal.members || [] } }).lean();
+  const rolesMap = cal.memberRoles instanceof Map ? cal.memberRoles : new Map(Object.entries(cal.memberRoles || {}));
 
-  const owner = users.find((u) => String(u._id) === String(cal.owner));
-  const members = users
-    .filter((u) => String(u._id) !== String(cal.owner))
-    .map((u) => {
-      const roleEntry = norm.find((m) => m.user === String(u._id));
-      return {
-        id: String(u._id),
-        email: u.email,
-        name: u.name,
-        role: roleEntry?.role || "member",
-      };
-    });
+  const ownerDto = {
+    id: owner._id.toString(),
+    email: owner.email,
+    name: owner.name,
+    role: "owner",
+  };
 
-  return res.json({
-    owner: owner ? { id: String(owner._id), email: owner.email, name: owner.name, role: "owner" } : null,
-    members,
+  const membersDto = members.map((m) => {
+    const id = m._id.toString();
+    const role = rolesMap.get(id) === "editor" ? "editor" : "member";
+    return { id, email: m.email, name: m.name, role };
   });
+
+  return res.json({ owner: ownerDto, members: membersDto });
 }
 
 export async function updateMemberRole(req, res) {
-  const cal = req.calendar;
-  const { userId } = req.params;
-  let { role } = req.body || {};
+  try {
+    const uid = req.user.id;
+    const cal = req.calendar;
+    assertMutableCalendar(cal);
 
-  if (!mongoose.isValidObjectId(userId)) {
-    return res.status(400).json({ error: "invalid userId" });
-  }
-  role = String(role || "").trim();
-  if (!["member", "editor"].includes(role)) {
-    return res.status(400).json({ error: "role must be 'member' or 'editor'" });
-  }
-  if (String(userId) === String(cal.owner)) {
-    return res.status(400).json({ error: "cannot change owner role" });
-  }
+    const { userId } = req.params;
+    let { role } = req.body || {};
+    role = (role === "editor" ? "editor" : "member");
 
-  const upd = await Calendar.updateOne(
-    { _id: cal._id, "members.user": userId },
-    { $set: { "members.$.role": role } }
-  );
+    if (cal.owner.toString() === userId) {
+      return res.status(400).json({ error: "cannot-change-owner-role" });
+    }
 
-  if (upd.matchedCount === 0) {
-    return res.status(404).json({ error: "member not found" });
+    const set = {};
+    set[`memberRoles.${userId}`] = role;
+
+    const updated = await Calendar.findByIdAndUpdate(
+      cal._id,
+      { $addToSet: { members: ObjectId(userId) }, $set: set },
+      { new: true }
+    );
+
+    return res.json({ calendar: toCalendarResponse(updated, uid) });
+  } catch (err) {
+    if (err?.code === "system-calendar-immutable") {
+      return res.status(400).json({ error: "system-calendar-immutable" });
+    }
+    console.error("updateMemberRole.error:", err);
+    return res.status(500).json({ error: "internal" });
   }
-
-  const updated = await Calendar.findById(cal._id);
-  return res.json({ calendar: presentCalendar(updated, req.user.id) });
 }
 
 export async function removeMember(req, res) {
-  const cal = req.calendar;
-  const { userId } = req.params;
+  try {
+    const uid = req.user.id;
+    const cal = req.calendar;
+    assertMutableCalendar(cal);
 
-  if (!mongoose.isValidObjectId(userId)) {
-    return res.status(400).json({ error: "invalid userId" });
+    const { userId } = req.params;
+    if (cal.owner.toString() === userId) {
+      return res.status(400).json({ error: "cannot-remove-owner" });
+    }
+
+    const unset = {};
+    unset[`memberRoles.${userId}`] = 1;
+
+    const updated = await Calendar.findByIdAndUpdate(
+      cal._id,
+      { $pull: { members: ObjectId(userId) }, $unset: unset },
+      { new: true }
+    );
+
+    return res.json({ calendar: toCalendarResponse(updated, uid) });
+  } catch (err) {
+    if (err?.code === "system-calendar-immutable") {
+      return res.status(400).json({ error: "system-calendar-immutable" });
+    }
+    console.error("removeMember.error:", err);
+    return res.status(500).json({ error: "internal" });
   }
-  if (String(userId) === String(cal.owner)) {
-    return res.status(400).json({ error: "cannot remove calendar owner" });
-  }
-
-  await Calendar.updateOne(
-    { _id: cal._id },
-    { $pull: { members: { user: new mongoose.Types.ObjectId(userId) } } }
-  );
-
-  const updated = await Calendar.findById(cal._id);
-  return res.json({ calendar: presentCalendar(updated, req.user.id) });
 }
 
 export async function leaveCalendar(req, res) {
-  const cal = req.calendar;
-  const uid = String(req.user.id);
+  try {
+    const uid = req.user.id;
+    const cal = req.calendar;
 
-  if (String(cal.owner) === uid) {
-    return res.status(400).json({ error: "owner cannot leave own calendar" });
+    if (cal.owner.toString() === uid) {
+      return res.status(400).json({ error: "owner-cannot-leave" });
+    }
+    // Системные календарей не покидаем (они принадлежат пользователю и без members)
+    if (cal.isSystem) {
+      return res.status(400).json({ error: "system-calendar-immutable" });
+    }
+
+    const unset = {};
+    unset[`memberRoles.${uid}`] = 1;
+
+    const updated = await Calendar.findByIdAndUpdate(
+      cal._id,
+      { $pull: { members: ObjectId(uid) }, $unset: unset },
+      { new: true }
+    );
+
+    return res.json({ calendar: toCalendarResponse(updated, uid) });
+  } catch (err) {
+    console.error("leaveCalendar.error:", err);
+    return res.status(500).json({ error: "internal" });
   }
-
-  const norm = normalizeMembersArray(cal.members);
-  const isMember = norm.some((m) => m.user === uid);
-  if (!isMember) return res.status(400).json({ error: "not a member of this calendar" });
-
-  await Calendar.updateOne(
-    { _id: cal._id },
-    { $pull: { members: { user: new mongoose.Types.ObjectId(uid) } } }
-  );
-
-  const updated = await Calendar.findById(cal._id);
-  return res.json({ calendar: presentCalendar(updated, uid) });
 }
 
-/* Invites (owner-only list) */
+// ===== Invites (owner-only в роутере) =====
 
 export async function listCalendarInvites(req, res) {
+  const uid = req.user.id;
   const cal = req.calendar;
-  const list = await Invitation.find({ calendar: cal._id }).sort({ createdAt: -1 }).lean();
-  return res.json({
-    invites: list.map((i) => ({
-      id: String(i._id),
-      email: i.email,
-      role: i.role,
-      status: i.status,
-      createdAt: i.createdAt,
-      expiresAt: i.expiresAt,
-      acceptedAt: i.acceptedAt,
-    })),
-  });
+  const invites = await Invitation.find({ calendar: cal._id }).sort({ createdAt: -1 }).lean();
+
+  const dto = invites.map((i) => ({
+    id: i._id.toString(),
+    email: i.email,
+    role: i.role,
+    status: i.status,
+    createdAt: i.createdAt,
+    expiresAt: i.expiresAt,
+    acceptedAt: i.acceptedAt,
+  }));
+
+  return res.json({ invites: dto, calendar: toCalendarResponse(cal, uid) });
+}
+
+export async function resendCalendarInvite(req, res) {
+  try {
+    const { inviteId } = req.params;
+    const cal = req.calendar;
+    await resendInvite(cal._id.toString(), inviteId);
+    const inv = await Invitation.findById(inviteId).lean();
+    return res.json({ ok: true, invite: { id: inv._id.toString(), status: inv.status } });
+  } catch (err) {
+    console.error("resendCalendarInvite.error:", err);
+    return res.status(500).json({ error: "internal" });
+  }
+}
+
+export async function revokeCalendarInvite(req, res) {
+  try {
+    const { inviteId } = req.params;
+    const cal = req.calendar;
+    await revokeInvite(cal._id.toString(), inviteId);
+    const inv = await Invitation.findById(inviteId).lean();
+    return res.json({ ok: true, invite: { id: inv._id.toString(), status: inv.status } });
+  } catch (err) {
+    console.error("revokeCalendarInvite.error:", err);
+    return res.status(500).json({ error: "internal" });
+  }
 }
