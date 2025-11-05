@@ -5,9 +5,9 @@ import cors from "cors";
 import authRouter from "./routes/auth.routes.js";
 import healthRouter from "./routes/health.routes.js";
 import calendarRouter from "./routes/calendar.routes.js";
+import inviteRouter from "./routes/invite.routes.js";
 
 const app = express();
-
 
 app.use(
   cors({
@@ -23,8 +23,7 @@ app.get("/", (_req, res) => res.json({ ok: true }));
 
 app.use("/auth", authRouter);
 app.use("/health", healthRouter);
-
-// 🔗 календари (ACL внутри самих роутов)
 app.use("/calendars", calendarRouter);
+app.use("/invites", inviteRouter);
 
 export default app;
