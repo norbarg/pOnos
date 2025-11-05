@@ -1,17 +1,30 @@
-import express from 'express';
-import cors from 'cors';
-import morgan from 'morgan';
-import healthRoutes from './routes/health.routes.js';
-import authRoutes from './routes/auth.routes.js';
+import express from "express";
+import morgan from "morgan";
+import cors from "cors";
+
+import authRouter from "./routes/auth.routes.js";
+import healthRouter from "./routes/health.routes.js";
+import calendarRouter from "./routes/calendar.routes.js";
 
 const app = express();
 
-app.use(cors());
+
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN?.split(",") || true,
+    credentials: true,
+  })
+);
+
 app.use(express.json());
-if (process.env.NODE_ENV !== 'production') app.use(morgan('dev'));
+app.use(morgan("dev"));
 
-app.use('/health', healthRoutes);
-app.use('/auth', authRoutes);
+app.get("/", (_req, res) => res.json({ ok: true }));
 
-// если хочешь, можешь удалить файл debug.routes.js и его import из проекта
+app.use("/auth", authRouter);
+app.use("/health", healthRouter);
+
+// 🔗 календари (ACL внутри самих роутов)
+app.use("/calendars", calendarRouter);
+
 export default app;
