@@ -1,0 +1,16 @@
+// chronos-frontend/src/features/auth/authTypes.js
+export const AUTH_LOGIN_REQUEST = 'AUTH/LOGIN_REQUEST';
+export const AUTH_LOGIN_SUCCESS = 'AUTH/LOGIN_SUCCESS';
+export const AUTH_LOGIN_FAILURE = 'AUTH/LOGIN_FAILURE';
+
+export const AUTH_REGISTER_REQUEST = 'AUTH/REGISTER_REQUEST';
+export const AUTH_REGISTER_SUCCESS = 'AUTH/REGISTER_SUCCESS';
+export const AUTH_REGISTER_FAILURE = 'AUTH/REGISTER_FAILURE';
+
+export const AUTH_ME_REQUEST = 'AUTH/ME_REQUEST';
+export const AUTH_ME_SUCCESS = 'AUTH/ME_SUCCESS';
+export const AUTH_ME_FAILURE = 'AUTH/ME_FAILURE';
+
+export const AUTH_LOGOUT = 'AUTH/LOGOUT';
+
+export const AUTH_CLEAR_ERROR = 'AUTH/CLEAR_ERROR';
