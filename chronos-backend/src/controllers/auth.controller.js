@@ -1,4 +1,3 @@
-// chronos-backend/src/controllers/auth.controller.js
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
@@ -16,7 +15,7 @@ function signToken(userId, email) {
 
 export async function register(req, res) {
   try {
-    const { email, password, passwordConfirm, name } = req.body || {};
+    const { email, password, passwordConfirm, name, username } = req.body || {};
 
     if (!email || !password || !passwordConfirm) {
       return res.status(400).json({ error: "missing-fields" });
@@ -27,15 +26,28 @@ export async function register(req, res) {
 
     const normalizedEmail = String(email).trim().toLowerCase();
     const normalizedName = (name ?? "").trim();
+    const normalizedUsername =
+      typeof username === "string" && username.trim()
+        ? username.trim().toLowerCase()
+        : undefined;
 
-    const exists = await User.findOne({ email: normalizedEmail }).lean();
-    if (exists) {
-      return res.status(409).json({ error: "email already in use" });
+    // Проверки уникальности
+    const emailExists = await User.findOne({ email: normalizedEmail }).lean();
+    if (emailExists) return res.status(409).json({ error: "email already in use" });
+
+    if (normalizedUsername) {
+      // лёгкая серверная валидация (дублирует валидатор схемы — для быстрого ответа 400)
+      if (!/^[a-z0-9._-]{3,32}$/.test(normalizedUsername)) {
+        return res.status(400).json({ error: "username-invalid" });
+      }
+      const usernameExists = await User.findOne({ username: normalizedUsername }).lean();
+      if (usernameExists) return res.status(409).json({ error: "username already in use" });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({
       email: normalizedEmail,
+      username: normalizedUsername,
       passwordHash,
       name: normalizedName || undefined,
     });
@@ -46,14 +58,19 @@ export async function register(req, res) {
     // 2) Создаём системный праздников (UA)
     await ensureHolidaysCalendar(user._id, "UA");
 
-    // 3) Автоматически присоединяем все висящие инвайты на этот email
+    // 3) Автоподцепление висящих инвайтов по email
     await attachPendingInvitesForEmail(normalizedEmail, user._id);
 
     const token = signToken(user._id.toString(), user.email);
-    const safeUser = user.toJSON(); // passwordHash удаляется в toJSON()
+    const safeUser = user.toJSON(); // passwordHash удалён
 
     return res.json({ user: safeUser, token });
   } catch (err) {
+    // ловим возможные уникальные индексы
+    if (err?.code === 11000) {
+      if (err?.keyPattern?.username) return res.status(409).json({ error: "username already in use" });
+      if (err?.keyPattern?.email) return res.status(409).json({ error: "email already in use" });
+    }
     console.error("register.error:", err);
     return res.status(500).json({ error: "internal" });
   }
@@ -61,13 +78,20 @@ export async function register(req, res) {
 
 export async function login(req, res) {
   try {
-    const { email, password } = req.body || {};
-    if (!email || !password) {
+    // обратная совместимость: если пришёл email — тоже сработает
+    const raw = req.body?.identifier ?? req.body?.email;
+    const { password } = req.body || {};
+
+    if (!raw || !password) {
       return res.status(400).json({ error: "missing-fields" });
     }
-    const normalizedEmail = String(email).trim().toLowerCase();
 
-    const user = await User.findOne({ email: normalizedEmail });
+    const identifier = String(raw).trim().toLowerCase();
+    const query = identifier.includes("@")
+      ? { email: identifier }
+      : { username: identifier };
+
+    const user = await User.findOne(query);
     if (!user) return res.status(401).json({ error: "invalid-credentials" });
 
     const ok = await bcrypt.compare(password, user.passwordHash);
@@ -82,7 +106,7 @@ export async function login(req, res) {
 }
 
 export async function me(_req, res) {
-  // requireAuth кладёт в req.user, но здесь уже возвращаем то, что он положил
-  const { id, email, name } = res.req.user || {};
-  return res.json({ user: { id, email, name } });
+  // requireAuth кладёт в req.user
+  const { id, email, name, username } = res.req.user || {};
+  return res.json({ user: { id, email, name, username } });
 }
