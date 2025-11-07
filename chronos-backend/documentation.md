@@ -3,13 +3,13 @@
 -   register
 
 ```
-    curl.exe -X POST "http://localhost:8000/auth/register" -H "Content-Type: application/json" -d "{\"email\":\"user4@example.com\",\"password\":\"password123\",\"passwordConfirm\":\"password123\",\"name\":\"user four\"}"
+    curl.exe -X POST "http://localhost:8000/auth/register" -H "Content-Type: application/json" -d "{\"email\":\"koliasleshev@gmail.com\",\"password\":\"password123\",\"passwordConfirm\":\"password123\",\"name\":\"borov\"}"
 ```
 
 -   login
 
 ```
-    curl.exe -X POST "http://localhost:8000/auth/login" -H "Content-Type: application/json" -d "{\"email\":\"user@example.com\",\"password\":\"password123\"}"
+    curl.exe -X POST "http://localhost:8000/auth/login" -H "Content-Type: application/json" -d "{\"email\":\"koliasleshev@gmail.com\",\"password\":\"password123\"}"
 
 ```
 
@@ -30,7 +30,7 @@
 -   create calendar
 
 ```
-   curl.exe -X POST "http://localhost:8000/calendars" -H "Authorization: Bearer %TOKEN%" -H "Content-Type: application/json" -d "{\"name\":\"Work\",\"color\":\"#3b82f6\",\"description\":\"Team tasks\"}"
+   curl.exe -X POST "http://localhost:8000/calendars" -H "Authorization: Bearer %INV_TOKEN%" -H "Content-Type: application/json" -d "{\"name\":\"Workddddddd\",\"color\":\"#3b82f6\",\"description\":\"Team tasks\"}"
 
 ```
 
@@ -155,3 +155,54 @@ curl.exe -X DELETE "http://localhost:8000/users/me" ^
   -H "Authorization: Bearer %TOKEN%"
 
 ```
+
+-   share cal
+
+```
+curl.exe -X POST "http://localhost:8000/calendars/%CAL_ID%/share" ^
+  -H "Authorization: Bearer %TOKEN%" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"email\":\"koliasleshev@gmail.com\",\"role\":\"editor\"}"
+
+
+```
+
+a4a5f3dd5f236973df995d0585507d46baad66ded8bdcc5b2de085c7138d9c13
+
+-   accept invite
+
+```
+curl.exe -X POST "http://localhost:8000/invites/accept" ^
+  -H "Authorization: Bearer %INV_TOKEN%" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"token\":\"5f9ef2e0839ad40e9d8705c1c57888f138337ce4e0823a59104642a2bd9163a0\"}"
+
+
+
+```
+
+-   send event invite
+
+```
+curl.exe -X POST "http://localhost:8000/events/%EVENT_ID%/invite" ^
+  -H "Authorization: Bearer %TOKEN%" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"email\":\"koliasleshev@gmail.com\"}"
+
+
+```
+
+-   place event in your cal
+
+```
+curl.exe -s -X POST http://localhost:8000/events/%EVENT_ID%/placement ^
+  -H "Authorization: Bearer %INV_TOKEN%" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"calendarId\":\"690e06337dbe74e1dea502c1\"}"
+
+
+
+```
+
+curl.exe -s -H "Authorization: Bearer %INV_TOKEN%" ^
+"http://localhost:8000/calendars/690e06337dbe74e1dea502c1/events?from=2025-11-01T00:00:00.000Z&to=2025-12-01T00:00:00.000Z&expand=1"

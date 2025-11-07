@@ -1,10 +1,16 @@
-// chronos-backend/src/controllers/event.controller.js
 import mongoose from 'mongoose';
 import rrulePkg from 'rrule';
 import User from '../models/User.js';
 import Event from '../models/Event.js';
 import Category from '../models/Category.js';
 import Calendar from '../models/Calendar.js';
+import {
+    createEventInvite,
+    resendEventInvite as resendEvtInv,
+    revokeEventInvite as revokeEvtInv,
+} from '../services/eventInvite.service.js';
+import EventInvitation from '../models/EventInvitation.js';
+
 const { RRule } = rrulePkg;
 
 /* helpers */
@@ -13,6 +19,7 @@ function parseISO(s) {
     if (isNaN(d)) throw new Error('invalid date');
     return d;
 }
+
 function sanitizeEvent(ev, catMap) {
     const o = ev.toObject ? ev.toObject() : ev;
     const category =
@@ -35,12 +42,12 @@ function sanitizeEvent(ev, catMap) {
         calendar: String(o.calendar),
         owner: String(o.owner),
         participants: (o.participants || []).map(String),
-        invites: o.invites || [],
         recurrence: o.recurrence || null,
         createdAt: o.createdAt,
         updatedAt: o.updatedAt,
     };
 }
+
 function canManage(ev, uid, calOfEvent) {
     const isOwner = String(ev.owner) === String(uid);
     const isCalOwner = calOfEvent && String(calOfEvent.owner) === String(uid);
@@ -62,7 +69,6 @@ export async function createEvent(req, res) {
         if (!isOwner && !isMember)
             return res.status(403).json({ error: 'forbidden' });
 
-        // allDay — УДАЛЕНО из деструктуризации
         let { title, description, start, end, categoryId, recurrence } =
             req.body || {};
         title = String(title || '').trim();
@@ -107,7 +113,7 @@ export async function createEvent(req, res) {
             calendar: cal._id,
             owner: uid,
             participants: [],
-            invites: [],
+            placements: [],
             recurrence: recurrenceObj,
         });
 
@@ -117,7 +123,7 @@ export async function createEvent(req, res) {
     }
 }
 
-/* LIST (by calendar) + фильтры & expand */
+/* LIST (by calendar) + filters & expand */
 export async function listCalendarEvents(req, res) {
     const uid = req.user.id;
     const { calId } = req.params;
@@ -141,7 +147,6 @@ export async function listCalendarEvents(req, res) {
         if (to) q.start.$lt = parseISO(to);
     }
     if (category) {
-        // принимаем список id через запятую
         const ids = String(category)
             .split(',')
             .filter((x) => mongoose.isValidObjectId(x));
@@ -150,7 +155,6 @@ export async function listCalendarEvents(req, res) {
 
     const list = await Event.find(q).sort({ start: 1 }).lean();
 
-    // подтянем категории
     const catIds = [...new Set(list.map((e) => String(e.category)))];
     const cats = await Category.find({ _id: { $in: catIds } }).lean();
     const catMap = new Map(
@@ -165,7 +169,6 @@ export async function listCalendarEvents(req, res) {
         ])
     );
 
-    // expand повторений (опционально)
     if (expand && Number(expand) === 1 && (from || to)) {
         const rangeFrom = from
             ? parseISO(from)
@@ -224,11 +227,9 @@ export async function listCalendarEvents(req, res) {
 /* READ */
 export async function getEvent(req, res) {
     const e = req.event;
-    // разрешим доступ, если юзер: владелец события, владелец/участник календаря события,
-    // участник события либо календари пересекаются через sharedWithCalendars
-    // (упрощенно: проверим календарь)
     const cal = await Calendar.findById(e.calendar).lean();
     const uid = req.user.id;
+
     const isOwner = String(e.owner) === uid;
     const canSeeCal =
         cal &&
@@ -268,7 +269,6 @@ export async function updateEvent(req, res) {
         String(e.owner) === uid || (cal && String(cal.owner) === uid);
     if (!canEdit) return res.status(403).json({ error: 'forbidden' });
 
-    // allDay — УДАЛЁН из деструктуризации
     let { title, description, start, end, categoryId, recurrence } =
         req.body || {};
     const patch = {};
@@ -324,7 +324,7 @@ export async function updateEvent(req, res) {
     return res.json({ event: sanitizeEvent(updated) });
 }
 
-/* DELETE */
+/* DELETE (with cascade) */
 export async function deleteEvent(req, res) {
     const e = req.event;
     const uid = req.user.id;
@@ -333,15 +333,20 @@ export async function deleteEvent(req, res) {
         String(e.owner) === uid || (cal && String(cal.owner) === uid);
     if (!canDelete) return res.status(403).json({ error: 'forbidden' });
 
+    // каскад: чистим инвайты события
+    await EventInvitation.deleteMany({ event: e._id });
+
+    // само событие
     await Event.deleteOne({ _id: e._id });
-    res.json({ ok: true });
+
+    return res.json({ ok: true });
 }
 
+/* PARTICIPANTS & PLACEMENTS */
 export async function listParticipants(req, res) {
     const ev = req.event;
     const uid = req.user.id;
 
-    // доступ: владелец события / владелец календаря / участник
     const cal = await Calendar.findById(ev.calendar).lean();
     const isOwner = String(ev.owner) === uid;
     const isCalOwner = cal && String(cal.owner) === uid;
@@ -372,7 +377,7 @@ export async function listParticipants(req, res) {
     return res.json({ participants: out });
 }
 
-/** Добавить участника (только владелец события/календаря) */
+/** Добавить участника (owner/owner-calendar) */
 export async function addParticipant(req, res) {
     const ev = req.event;
     const uid = req.user.id;
@@ -388,7 +393,6 @@ export async function addParticipant(req, res) {
     const user = await User.findById(userId).lean();
     if (!user) return res.status(404).json({ error: 'user not found' });
 
-    // уже участник? — просто ок
     const isAlready = (ev.participants || []).some(
         (p) => String(p) === String(userId)
     );
@@ -399,7 +403,6 @@ export async function addParticipant(req, res) {
         );
     }
 
-    // опционально сразу указать календарь для размещения участника
     if (calendarId) {
         if (!mongoose.isValidObjectId(calendarId)) {
             return res.status(400).json({ error: 'invalid calendarId' });
@@ -408,7 +411,6 @@ export async function addParticipant(req, res) {
         if (!calTarget)
             return res.status(404).json({ error: 'calendar not found' });
 
-        // участник имеет доступ к этому календарю? (владелец/участник)
         const targetOwner = String(calTarget.owner) === String(userId);
         const targetMember =
             Array.isArray(calTarget.members) &&
@@ -429,7 +431,6 @@ export async function addParticipant(req, res) {
                 },
             }
         );
-        // если запись уже есть — обновим календарь
         await Event.updateOne(
             { _id: ev._id, 'placements.user': userId },
             { $set: { 'placements.$.calendar': calendarId } }
@@ -440,7 +441,6 @@ export async function addParticipant(req, res) {
     return res.json({ event: { id: String(fresh._id) }, ok: true });
 }
 
-/** Убрать участника (только владелец события/календаря) */
 export async function removeParticipant(req, res) {
     const ev = req.event;
     const uid = req.user.id;
@@ -453,7 +453,6 @@ export async function removeParticipant(req, res) {
     if (!mongoose.isValidObjectId(userId)) {
         return res.status(400).json({ error: 'invalid userId' });
     }
-    // нельзя удалить владельца события
     if (String(userId) === String(ev.owner)) {
         return res.status(400).json({ error: 'cannot remove event owner' });
     }
@@ -477,7 +476,6 @@ export async function setMyPlacement(req, res) {
     const uid = req.user.id;
     const { calendarId } = req.body || {};
 
-    // должен быть участником или владельцем
     const amParticipant =
         String(ev.owner) === uid ||
         (ev.participants || []).some((p) => String(p) === uid);
@@ -489,7 +487,6 @@ export async function setMyPlacement(req, res) {
     const cal = await Calendar.findById(calendarId).lean();
     if (!cal) return res.status(404).json({ error: 'calendar not found' });
 
-    // я должен иметь доступ к этому календарю
     const iOwn = String(cal.owner) === uid;
     const iMember =
         Array.isArray(cal.members) &&
@@ -497,7 +494,6 @@ export async function setMyPlacement(req, res) {
     if (!iOwn && !iMember)
         return res.status(403).json({ error: 'no access to this calendar' });
 
-    // upsert placement
     await Event.updateOne(
         { _id: ev._id, 'placements.user': { $ne: uid } },
         { $addToSet: { placements: { user: uid, calendar: calendarId } } }
@@ -510,7 +506,7 @@ export async function setMyPlacement(req, res) {
     return res.json({ ok: true });
 }
 
-/** Участник: покинуть событие (и убрать своё размещение) */
+/** Участник: покинуть событие */
 export async function leaveEvent(req, res) {
     const ev = req.event;
     const uid = req.user.id;
@@ -530,4 +526,84 @@ export async function leaveEvent(req, res) {
     );
 
     return res.json({ ok: true });
+}
+
+/* === INVITES BY EMAIL (EVENT) === */
+export async function inviteByEmail(req, res) {
+    const ev = req.event;
+    const uid = req.user.id;
+    const cal = await Calendar.findById(ev.calendar).lean();
+    if (!canManage(ev, uid, cal))
+        return res.status(403).json({ error: 'forbidden' });
+
+    let { email } = req.body || {};
+    if (!email) return res.status(400).json({ error: 'email-required' });
+    email = String(email).trim().toLowerCase();
+
+    const inv = await createEventInvite({
+        eventId: ev._id.toString(),
+        inviterId: uid,
+        email,
+    });
+    return res.json({
+        ok: true,
+        invite: {
+            id: inv._id.toString(),
+            email: inv.email,
+            status: inv.status,
+            expiresAt: inv.expiresAt,
+        },
+    });
+}
+
+export async function listEventInvites(req, res) {
+    const ev = req.event;
+    const uid = req.user.id;
+    const cal = await Calendar.findById(ev.calendar).lean();
+    if (!canManage(ev, uid, cal))
+        return res.status(403).json({ error: 'forbidden' });
+
+    const list = await EventInvitation.find({ event: ev._id })
+        .sort({ createdAt: -1 })
+        .lean();
+    return res.json({
+        invites: list.map((i) => ({
+            id: String(i._id),
+            email: i.email,
+            status: i.status,
+            createdAt: i.createdAt,
+            expiresAt: i.expiresAt,
+            acceptedAt: i.acceptedAt,
+        })),
+    });
+}
+
+export async function resendEventInvite(req, res) {
+    const ev = req.event;
+    const uid = req.user.id;
+    const cal = await Calendar.findById(ev.calendar).lean();
+    if (!canManage(ev, uid, cal))
+        return res.status(403).json({ error: 'forbidden' });
+
+    const { inviteId } = req.params;
+    const inv = await resendEvtInv(inviteId);
+    return res.json({
+        ok: true,
+        invite: { id: String(inv._id), status: inv.status },
+    });
+}
+
+export async function revokeEventInvite(req, res) {
+    const ev = req.event;
+    const uid = req.user.id;
+    const cal = await Calendar.findById(ev.calendar).lean();
+    if (!canManage(ev, uid, cal))
+        return res.status(403).json({ error: 'forbidden' });
+
+    const { inviteId } = req.params;
+    const inv = await revokeEvtInv(inviteId);
+    return res.json({
+        ok: true,
+        invite: { id: String(inv._id), status: inv.status },
+    });
 }

@@ -4,7 +4,6 @@ import cors from 'cors';
 import path from 'path';
 
 import authRouter from './routes/auth.routes.js';
-import healthRouter from './routes/health.routes.js';
 import calendarRouter from './routes/calendar.routes.js';
 import inviteRouter from './routes/invite.routes.js';
 import categoryRoutes from './routes/category.routes.js';
@@ -26,7 +25,6 @@ app.use(morgan('dev'));
 app.get('/', (_req, res) => res.json({ ok: true }));
 
 app.use('/auth', authRouter);
-app.use('/health', healthRouter);
 app.use('/calendars', calendarRouter);
 app.use('/invites', inviteRouter);
 app.use('/categories', categoryRoutes);

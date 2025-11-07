@@ -18,12 +18,14 @@ const eventSchema = new Schema(
 
         category: { type: Types.ObjectId, ref: 'Category', required: true },
 
-        calendar: { type: Types.ObjectId, ref: 'Calendar', required: true }, // основной календарь владельца
-        placements: { type: [placementSchema], default: [] }, // персональное размещение для каждого участника
+        // основной календарь владельца события
+        calendar: { type: Types.ObjectId, ref: 'Calendar', required: true },
+
+        // персональные размещения участников
+        placements: { type: [placementSchema], default: [] },
 
         owner: { type: Types.ObjectId, ref: 'User', required: true },
         participants: [{ type: Types.ObjectId, ref: 'User' }],
-        invites: [{ type: String }],
 
         recurrence: {
             rrule: { type: String },
@@ -34,6 +36,7 @@ const eventSchema = new Schema(
     { timestamps: true }
 );
 
+// индексы
 eventSchema.index({ calendar: 1, start: 1 });
 eventSchema.index({ owner: 1, start: 1 });
 eventSchema.index({ owner: 1, category: 1 });
