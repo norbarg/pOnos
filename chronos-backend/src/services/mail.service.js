@@ -106,3 +106,27 @@ export async function sendEventInviteEmail({ to, eventTitle, when, link }) {
     <p><a href="${link}">Accept invitation</a></p>`;
     return sendMail({ to, subject, text, html });
 }
+// === Письма-напоминания по событиям ===
+export async function sendEventReminderEmail({
+    to,
+    eventTitle,
+    when,
+    kind,
+    minutes = 15,
+    link,
+}) {
+    const subj =
+        kind === 'before15'
+            ? `Reminder: "${eventTitle}" starts in ${minutes} min`
+            : `Now: "${eventTitle}" is starting`;
+    const text =
+        kind === 'before15'
+            ? `Event "${eventTitle}" starts in ${minutes} minutes. When: ${when}. Open: ${link}`
+            : `Event "${eventTitle}" is starting now. When: ${when}. Open: ${link}`;
+    const html =
+        kind === 'before15'
+            ? `<p>Event <b>${eventTitle}</b> starts in <b>${minutes} minutes</b>.</p><p><i>${when}</i></p><p><a href="${link}">Open event</a></p>`
+            : `<p>Event <b>${eventTitle}</b> is <b>starting now</b>.</p><p><i>${when}</i></p><p><a href="${link}">Open event</a></p>`;
+
+    return sendMail({ to, subject: subj, text, html });
+}

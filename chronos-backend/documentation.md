@@ -30,7 +30,7 @@
 -   create calendar
 
 ```
-   curl.exe -X POST "http://localhost:8000/calendars" -H "Authorization: Bearer %INV_TOKEN%" -H "Content-Type: application/json" -d "{\"name\":\"Workddddddd\",\"color\":\"#3b82f6\",\"description\":\"Team tasks\"}"
+   curl.exe -X POST "http://localhost:8000/calendars" -H "Authorization: Bearer %TOKEN%" -H "Content-Type: application/json" -d "{\"name\":\"Workddddddd\",\"color\":\"#3b82f6\",\"description\":\"Team tasks\"}"
 
 ```
 
@@ -204,5 +204,4 @@ curl.exe -s -X POST http://localhost:8000/events/%EVENT_ID%/placement ^
 
 ```
 
-curl.exe -s -H "Authorization: Bearer %INV_TOKEN%" ^
-"http://localhost:8000/calendars/690e06337dbe74e1dea502c1/events?from=2025-11-01T00:00:00.000Z&to=2025-12-01T00:00:00.000Z&expand=1"
+curl.exe -X POST "http://localhost:8000/calendars/690e06337dbe74e1dea502c1/events" -H "Authorization: Bearer %TOKEN%" -H "Content-Type: application/json" -d "{\"title\":\"SMTP live test\",\"description\":\"reminders: -15m ^& start\",\"start\":\"2025-11-07T16:00:00.000Z\",\"end\":\"2025-11-07T17:00:00.000Z\",\"categoryId\":\"%CAT_ID%\"}"

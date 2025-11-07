@@ -5,6 +5,7 @@ import http from 'http';
 import mongoose from 'mongoose';
 import app from './app.js';
 import { connectDB } from './config/db.js';
+import { startEventReminderScheduler } from './services/eventReminder.service.js';
 
 const PORT = Number(process.env.PORT) || 8000;
 const MONGO_URI = process.env.MONGO_URI;
@@ -23,6 +24,8 @@ async function bootstrap() {
         server.listen(PORT, () => {
             console.log(`🚀 Server listening on http://localhost:${PORT}`);
         });
+
+        startEventReminderScheduler();
 
         const shutdown = (signal) => {
             console.log(`\n📥 Received ${signal}. Closing server...`);
