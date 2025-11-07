@@ -9,7 +9,7 @@
 -   login
 
 ```
-    curl.exe -X POST "http://localhost:8000/auth/login" -H "Content-Type: application/json" -d "{\"email\":\"user4@example.com\",\"password\":\"password123\"}"
+    curl.exe -X POST "http://localhost:8000/auth/login" -H "Content-Type: application/json" -d "{\"email\":\"user@example.com\",\"password\":\"password123\"}"
 
 ```
 
@@ -134,6 +134,24 @@ curl.exe -H "Authorization: Bearer %USER_TOKEN%" ^
 
 ```
 curl.exe -X DELETE "http://localhost:8000/events/%EVENT_ID%/participants/%USER_ID%" ^
+  -H "Authorization: Bearer %TOKEN%"
+
+```
+
+-   change avatar
+
+```
+curl.exe -X PATCH "http://localhost:8000/users/me" ^
+  -H "Authorization: Bearer %TOKEN%" ^
+  -F "avatar=@C:\Users\My Asus\OneDrive\Рабочий стол\pOnos\638D0A7B-FD04-4C72-94DF-61D917F32DBA.jpg"
+
+```
+
+-   delete user
+
+```
+
+curl.exe -X DELETE "http://localhost:8000/users/me" ^
   -H "Authorization: Bearer %TOKEN%"
 
 ```

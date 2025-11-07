@@ -1,6 +1,7 @@
 import express from 'express';
 import morgan from 'morgan';
 import cors from 'cors';
+import path from 'path';
 
 import authRouter from './routes/auth.routes.js';
 import healthRouter from './routes/health.routes.js';
@@ -8,6 +9,7 @@ import calendarRouter from './routes/calendar.routes.js';
 import inviteRouter from './routes/invite.routes.js';
 import categoryRoutes from './routes/category.routes.js';
 import eventRoutes from './routes/event.routes.js';
+import userRoutes from './routes/user.routes.js';
 
 const app = express();
 
@@ -29,5 +31,7 @@ app.use('/calendars', calendarRouter);
 app.use('/invites', inviteRouter);
 app.use('/categories', categoryRoutes);
 app.use('/', eventRoutes);
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+app.use('/users', userRoutes);
 
 export default app;
