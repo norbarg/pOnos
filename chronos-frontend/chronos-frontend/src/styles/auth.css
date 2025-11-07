@@ -1,0 +1,214 @@
+/* Login/Register */
+
+h2 {
+    color: #000000;
+    font-weight: 600;
+}
+html, body, #root {
+  height: 100%;
+}
+
+html, body {
+  margin: 0;             
+  background: var(--bg);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.auth {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #24253B;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+}
+
+.auth__stage {
+  width: 100%;
+  max-width: 1200px;
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.1fr 1.2fr 1.1fr;
+  gap: 36px;
+align-items: stretch;
+}
+
+.auth__left {
+  color: #8C8C8C;              
+  display: grid;
+  align-content: center;  
+  justify-items: center;   
+  text-align: center;  
+  padding: 24px 8px;
+}
+.auth__brand {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 700; font-size: 20px;
+}
+.auth__brand img { height: 55px; display: block; margin: 0 auto;}
+
+.auth__hello {
+  color: #151726;
+  font-weight: 600;
+  font-size: clamp(40px, 6vw, 55px); 
+  letter-spacing: 0.2px;
+  margin: 8px 0 12px;        
+}
+
+.auth__lede,
+.auth__copy{
+  max-width: 36ch;      
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.6;
+  font-size: 18px;
+  font-weight: 300;
+}
+
+.auth__copy + .auth__copy {        
+  margin-top: 18px;
+}
+
+.auth__panel {
+  background: #2C2D4C;
+  border-radius: 24px;
+  position: relative;
+  padding: clamp(20px, 4vw, 40px);
+  place-items: center;
+  display:flex; 
+}
+
+
+.auth__panel_login {
+    background: #2C2D4C;
+  border-radius: 24px;
+  position: relative;
+  padding: clamp(20px, 4vw, 40px);
+  place-items: center;
+  display:flex;  
+}
+
+.auth__panel > div,
+.auth__panel_login > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;  
+  justify-content: center;
+  gap: 8px;                 
+  text-align: left;      
+  width: min(520px, 90%); 
+}
+
+.auth__welcome {
+  color: #FFD3EC;
+  font-weight: 600;
+  font-size: clamp(34px, 5vw, 60px);
+
+  word-spacing: clamp(2px, 0.6vw, 10px);
+  letter-spacing: 0.3px;      
+  line-height: 1.1;          
+  text-wrap: balance;
+}
+
+.auth__logoMark {
+  margin-top: 14px;
+  width: 48px; height: 48px;
+  display: grid; place-items: center;
+
+  margin-top: 0; transform: translateY(-8px); 
+  margin: 0; 
+}
+.auth__logoMark img { width: 50px; height: 50px; object-fit: contain; }
+
+.auth__cardWrap {
+  position: relative;
+  display: flex;       
+  align-items: stretch;     
+}
+
+.auth__card {
+  position: relative; 
+  right: auto;            
+  top: auto;           
+  transform: none;      
+  margin-left: -100px;
+  background: #fff;
+  color: #121212;
+  width: min(300px, 92vw);
+  border-radius: 24px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+  padding: 32px;
+  border: 1px solid rgba(0,0,0,0.05);
+  z-index: 2;            
+}
+
+.form { display: grid; gap: 16px; }
+.form h2 { margin: 0 0 6px; font-size: 26px; font-weight: 600; color: #000; }
+.form p.lead { margin: 0 0 18px; color: #96C0BE; }
+
+.form label { display: grid; gap: 8px; }
+.form .label { color: #8C8C8C; font-size: 16px; font-weight: 400; }
+
+.form input {
+  padding: 10px 0;          
+  border: none;
+  border-bottom: 1px solid #000000;
+  background: transparent;
+  color: #000000;
+  outline: none;
+  border-radius: 0;
+}
+.form input::placeholder { color: #b9bcc6; }
+.form input:focus { border-bottom-color: #1f2330; }
+
+.form .btn {
+  margin-top: 6px;
+  padding: 12px 20px;
+  border-radius: 999px;
+  border: none;
+  background: #96C0BE;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: "League Spartan", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-weight: 600;
+  width:100px;  
+  display:block;
+  margin:6px auto 0; 
+  font-size: 18px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;  
+}
+
+
+.form .muted { color: #8C8C8C; font-size: 14px;  text-align:center;  }
+.form .link-accent {
+  color: #96C0BE;
+  font-weight: 600;
+}
+.form .link-accent:hover { color: #96C0BE; }
+
+.form .error {
+  color: #791843;        
+  background: rgba(234, 131, 203, 0.12);
+  border: 1px solid rgba(224,100,124,0.35);
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.4;
+  animation: pop-in .15s ease-out;
+  text-align: center;      
+  margin-top: 8px;
+}
+
+@keyframes pop-in { from { transform: translateY(-2px); opacity: .0; } to   { transform: translateY(0);    opacity: 1; } }
+
+
+.form__actions{
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;   
+}
