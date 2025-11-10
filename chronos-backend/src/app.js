@@ -1,3 +1,4 @@
+// chronos-backend/src/app.js
 import express from 'express';
 import morgan from 'morgan';
 import cors from 'cors';
@@ -22,6 +23,7 @@ app.use(
 app.use(express.json());
 app.use(morgan('dev'));
 
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.get('/', (_req, res) => res.json({ ok: true }));
 
 app.use('/auth', authRouter);
@@ -29,7 +31,6 @@ app.use('/calendars', calendarRouter);
 app.use('/invites', inviteRouter);
 app.use('/categories', categoryRoutes);
 app.use('/', eventRoutes);
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use('/users', userRoutes);
 
 export default app;

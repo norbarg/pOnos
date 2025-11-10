@@ -93,7 +93,23 @@ export async function login(req, res) {
     }
 }
 
-export async function me(_req, res) {
-    const { id, email, name } = res.req.user || {};
-    return res.json({ user: { id, email, name } });
+export async function me(req, res) {
+    try {
+        const user = await User.findById(req.user.id)
+            .select({ email: 1, name: 1, avatar: 1 })
+            .lean();
+
+        if (!user) return res.status(404).json({ error: 'not-found' });
+
+        return res.json({
+            user: {
+                id: user._id.toString(),
+                email: user.email,
+                name: user.name,
+                avatar: user.avatar, // <- ВАЖНО
+            },
+        });
+    } catch (e) {
+        return res.status(500).json({ error: 'internal' });
+    }
 }

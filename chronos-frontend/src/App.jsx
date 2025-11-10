@@ -1,41 +1,49 @@
-// chronos-frontend/src/App.jsx
-import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchMe } from './features/auth/authActions';
 import ProtectedRoute from './components/ProtectedRoute';
+
+/* AUTH */
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
 
+/* APP LAYOUT + PAGES */
+import AppShell from './layouts/AppShell';
+import Calendars from './pages/Calendars';
+import EventPage from './pages/EventPage';
+import Profile from './pages/Profile';
 
 export default function App() {
-  const dispatch = useDispatch();
-  const { status } = useSelector((s) => s.auth);
+    return (
+        <Routes>
+            {/* публичные */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
 
-  useEffect(() => {
-    dispatch(fetchMe());
-  }, [dispatch]);
+            {/* после логина "/" редиректит на /calendars */}
+            <Route
+                path="/"
+                element={
+                    <ProtectedRoute>
+                        <Navigate to="/calendars" replace />
+                    </ProtectedRoute>
+                }
+            />
 
-  return (
-    <div className="container" >
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+            {/* защищённая коробка */}
+            <Route
+                path="/"
+                element={
+                    <ProtectedRoute>
+                        <AppShell />
+                    </ProtectedRoute>
+                }
+            >
+                <Route path="calendars" element={<Calendars />} />
+                <Route path="event" element={<EventPage />} />
+                <Route path="profile" element={<Profile />} />
+            </Route>
 
-      {status === 'loading' && (
-        <p className="muted" style={{ marginTop: 12 }}>Loading session…</p>
-      )}
-    </div>
-  );
+            {/* fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+    );
 }

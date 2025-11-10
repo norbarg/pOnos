@@ -143,7 +143,7 @@ curl.exe -X DELETE "http://localhost:8000/events/%EVENT_ID%/participants/%USER_I
 ```
 curl.exe -X PATCH "http://localhost:8000/users/me" ^
   -H "Authorization: Bearer %TOKEN%" ^
-  -F "avatar=@C:\Users\My Asus\OneDrive\Рабочий стол\pOnos\638D0A7B-FD04-4C72-94DF-61D917F32DBA.jpg"
+  -F "avatar=@C:\Users\My Asus\OneDrive\Рабочий стол\pOnos\chronos-backend\ava.jpg"
 
 ```
 

@@ -12,7 +12,6 @@ export async function requireAuth(req, res, next) {
                 .json({ error: 'Missing Authorization header' });
 
         const payload = jwt.verify(token, process.env.JWT_SECRET);
-        // по желанию можно не тянуть юзера и просто положить id
         const user = await User.findById(payload.sub).lean();
         if (!user) return res.status(401).json({ error: 'User not found' });
 
@@ -20,9 +19,10 @@ export async function requireAuth(req, res, next) {
             id: user._id.toString(),
             email: user.email,
             name: user.name,
+            avatar: user.avatar || null, // <- добавили
         };
         next();
-    } catch (e) {
+    } catch {
         return res.status(401).json({ error: 'Invalid or expired token' });
     }
 }

@@ -1,0 +1,150 @@
+:root {
+    --side-w: 90px;
+    --side-bg: #141827;
+    --side-border: rgba(255, 255, 255, 0.06);
+
+    /* размеры нав-слотов — синхронизированы с JS */
+    --slot-h: 75px; /* высота каждого пункта (profile, calendar, event) */
+    --top-base: 35px; /* отступ сверху до первого пункта */
+
+    --icon-hover-filter: brightness(1.15)
+        drop-shadow(0 2px 6px rgba(0, 0, 0, 0.25));
+    --avatar-bg: #22263a;
+    --slider-bg: #ffb3d3;
+    --slider-shadow: 0 6px 18px rgba(255, 179, 211, 0.55);
+}
+
+html[data-theme='light'] {
+    --side-bg: #f7f8fb;
+    --side-border: rgba(0, 0, 0, 0.06);
+    --icon-filter: contrast(0.9) brightness(0.2) invert(1);
+    --icon-hover-filter: brightness(0.95)
+        drop-shadow(0 2px 6px rgba(0, 0, 0, 0.15));
+    --avatar-bg: #e9ecf7;
+    --slider-bg: #ff89c1;
+    --slider-shadow: 0 6px 18px rgba(255, 137, 193, 0.45);
+}
+
+.side {
+    position: sticky;
+    top: 0;
+    width: var(--side-w);
+    height: 100vh;
+    background: var(--side-bg);
+    border-right: 1px solid var(--side-border);
+
+    z-index: 3; /* ВАЖНО: выше, чем .app-content */
+    overflow: visible; /* позволяем ползунку выйти вправо */
+}
+
+.side__inner {
+    height: 100%;
+}
+/* ползунок на стыке */
+.side__slider {
+    position: absolute;
+    right: -5px;
+    top: var(300px);
+    width: 8px;
+    height: 55px;
+    background: var(--slider-bg);
+    border-radius: 12px;
+    transition: top 360ms cubic-bezier(0.22, 1, 0.36, 1), height 180ms ease;
+    will-change: top;
+    z-index: 5;
+    pointer-events: none;
+}
+
+/* верхний блок: строго три слота без подписей */
+.side__nav {
+    position: relative;
+    margin-top: var(--top-base);
+    display: grid;
+    grid-auto-rows: var(--slot-h);
+    justify-items: center;
+    align-content: start;
+}
+
+.side__link {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.side__link .side__icon,
+.side__link .side__icon--avatar,
+.side__link .side__iconAvatarFallback {
+    transition: transform 160ms ease, filter 160ms ease, box-shadow 160ms ease;
+}
+
+.side__icon {
+    width: auto;
+    height: 40px;
+    display: block;
+}
+/* аватар как пункт меню */
+.side__icon--avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 999px;
+    object-fit: cover;
+    border: 1px solid #ffffff22;
+}
+.side__iconAvatarFallback {
+    width: 50px;
+    height: 50px;
+    border-radius: 999px;
+    background: var(--avatar-bg);
+    display: grid;
+    place-items: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    border: 1px solid #ffffff22;
+}
+
+/* ховер/фокус деликатный */
+.side__link:hover .side__icon,
+.side__link:focus-visible .side__icon {
+    transform: translateY(-1px) scale(1.06);
+    filter: var(--icon-hover-filter);
+}
+.side__link:hover .side__icon--avatar,
+.side__link:focus-visible .side__icon--avatar,
+.side__link:hover .side__iconAvatarFallback,
+.side__link:focus-visible .side__iconAvatarFallback {
+    transform: translateY(-1px) scale(1.06);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* нижние кнопки всегда внизу и всегда видны */
+.side__bottom {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 35px;
+    display: grid;
+    gap: 30px;
+    justify-items: center;
+}
+
+.side__tool {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+.side__toolIcon {
+    width: auto;
+    height: 35px;
+    display: block;
+    transition: transform 160ms ease, filter 160ms ease;
+}
+.side__tool:hover .side__toolIcon,
+.side__tool:focus-visible .side__toolIcon {
+    transform: translateY(-1px) scale(1.06);
+    filter: var(--icon-hover-filter);
+}
