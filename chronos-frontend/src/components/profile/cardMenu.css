@@ -1,0 +1,43 @@
+/* chronos-frontend/src/components/profile/cardMenu.css */
+.calMenu{ 
+    position:absolute; 
+    right:-146px; 
+    top:40px; 
+    background:#151726; 
+    border:2px solid #2C2D4C; 
+    border-radius:16px;
+    padding:10px; 
+    width:174px; 
+    z-index:30;
+  box-shadow:0 10px 30px rgba(0,0,0,.4);
+}
+.calMenu__item{
+    display:flex;
+    align-items:center; 
+    gap:10px;
+    width:100%; 
+    padding:10px 12px; 
+    border:0; 
+    background:transparent;
+    color:#EDEDF6; 
+    font-weight:700; 
+    font-size:15px; 
+    border-radius:12px;
+    cursor:pointer;
+    font-family: 'League Spartan', system-ui, -apple-system, Segoe UI, Roboto,
+        Arial, sans-serif;
+}
+
+.calMenu__item img{ width:18px; height:18px; opacity:.9; }
+.calMenu__item:hover{ background:#2A2E41; }
+.calMenu__item--danger{ color:#F36D6D; }
+.calMenu__item--danger:hover{ background:#f36d6d6d; }
+.calMenu__sep{ height:6px; border-radius:6px; background:#F5C3DB; margin:8px 12px;
+}
+.calMenu__leave{
+  appearance:none; border:0; width:100%;
+  background:transparent; color:#EDEDF6; font-weight:800;
+  padding:6px 10px 12px; border-radius:12px; cursor:pointer; font-size:15px; font-family: 'League Spartan', system-ui, -apple-system, Segoe UI, Roboto,
+        Arial, sans-serif;
+}
+.calMenu__leave:hover{ background:#f36d6d6d; }

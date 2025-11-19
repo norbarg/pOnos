@@ -20,6 +20,7 @@ export async function requireAuth(req, res, next) {
             email: user.email,
             name: user.name,
             avatar: user.avatar || null, // <- добавили
+            createdAt: user.createdAt || null, //дата
         };
         next();
     } catch {

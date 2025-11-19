@@ -1,0 +1,218 @@
+/* Profile page styles */
+:root{
+  --p-bg:#24253B;
+  --p-panel:#262A3E;
+  --p-divider:#151726;
+  --p-card:#2C2D4C;
+  --p-card-hover:#33365a;
+  --p-text:#E8EEF7;
+  --p-muted:#A7B0CD;
+  --p-accent:#96C0BE;
+  --p-accent-2:#FFD3EC;
+  --p-gap:28px;
+  --topbar-h: 72px;
+}
+
+html, body, #root{ height:100%; background:var(--p-bg); }
+body{ margin:0; }
+
+.profile__title{
+  grid-column:1 / -1;
+  margin:0 0 16px;
+  padding:7px 42px 7px;
+  font-size:25px; font-weight:700;
+  border-bottom:2px solid var(--p-divider);
+  position:relative;
+  background:#2C2D4C;
+  display:flex; align-items:center; gap:12px;
+  margin-left:calc(-1 * var(--p-gap));
+  margin-right:calc(-1 * var(--p-gap));
+  color:#8C8C8C;
+}
+.profile__brand{
+  width:50px; height:50px; object-fit:contain;
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,.35));
+  opacity:.95; margin-left:auto;
+}
+
+.profile.profile--threads{
+  color:var(--p-text);
+  padding:24px var(--p-gap) 0;
+  min-height: calc(100vh - var(--topbar-h));
+  display:flex;
+  flex-direction:column;
+}
+
+.profilePanel{
+  background:var(--p-card);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:20px;
+  box-shadow:0 16px 36px rgba(0,0,0,.28);
+  padding:30px;
+  flex:1 0 auto;
+  display:flex;
+  flex-direction:column;
+  max-width:920px;
+  width:100%;
+  margin-inline:auto;
+}
+
+.identity-row{ display:flex; align-items:center; gap:16px; }
+.identity-left{ min-width:0; flex:1; }
+.identity-name{ font-size:26px; font-weight:700; line-height:1.1; }
+.identity-meta{ margin-top:2px; }
+.identity-actions{ margin-top:30px; }
+.identity-right{ display:flex; justify-content:flex-end; align-items:center; }
+.identity-avatar{
+  width:150px; height:150px; border-radius:50%; object-fit:cover; background:#1b1e2d;
+  box-shadow:0 0 0 4px var(--p-accent), 0 10px 30px rgba(0,0,0,.35);
+  display:grid; place-items:center;
+}
+.identity-avatar--fallback{ font-weight:800; font-size:50px; letter-spacing:.5px; color:#0f1220; background:#FFD3EC; }
+
+.identity-actions .btn{
+  width:100%;
+  display:block;
+  text-align:center;
+  padding:14px 16px;
+}
+
+.panelDivider{ height:2px; background:var(--p-divider); border:0; margin:16px 0 12px; }
+
+.panelHeader{ display:flex; align-items:center; justify-content:space-between; margin-top:10px; }
+.panelHeader h2{ margin:0; font-size:22px; font-weight:700; color:#FFFFFF; }
+
+.btn{
+  appearance:none; border:0; cursor:pointer;
+  background:#24253B; color:#FFFFFF;
+  font-weight:600; border-radius:12px;
+  padding:10px 14px; line-height:1;
+  font-family:'League Spartan', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  border:1px solid #0f1220;
+}
+.btn.btn--small{ padding:12px 20px; font-size:18px; }
+.btn1{
+  appearance:none; border:0; cursor:pointer;
+  background:var(--p-accent); color:#FFFFFF;
+  font-weight:600; border-radius:12px;
+  padding:12px 20px; font-size:18px; line-height:1;
+  box-shadow:0 6px 18px rgba(0,0,0,.35);
+  font-family:'League Spartan', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+.muted1{ color:var(--p-muted); font-weight:700; }
+.oneLine{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+.profilePanel .calendar-grid{ margin-top:30px; }
+.calendar-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, 335px);
+  justify-content:center;
+  align-content:start;
+  row-gap:20px;
+  column-gap:34px;
+}
+
+.calendar-card{
+  position:relative;                   
+  width:300px;
+  background:var(--p-card);
+  border-radius:16px;
+  padding:0;                        
+  box-shadow:0 16px 36px rgba(0,0,0,.28);
+  border:1px solid rgba(255,255,255,.06);
+  transition:transform .15s ease, background-color .15s ease, box-shadow .15s ease;
+  overflow:hidden;
+  overflow: visible;          
+  position: relative;         
+  z-index: auto;
+}
+
+.calendar-card:hover{
+  transform:translateY(-2px);
+  background:#24253B;
+  box-shadow:0 20px 44px rgba(0,0,0,.32);
+}
+
+.calendar-header{                   
+  border:1px solid;
+  border-radius:14px 14px 0px 0px;
+  padding:10px 14px;
+  box-shadow:0 8px 18px rgba(0,0,0,.22);
+  margin-bottom: 15px;
+}
+.calendar-header__title{             
+  margin:0; font-size:22px; font-weight:800; letter-spacing:.2px;
+}
+.calendar-header__title a{         
+  color:#FFFFFF; text-decoration:none;
+}
+
+.calendar-body{                     
+  padding: 0 18px 16px;
+}
+
+.calendar-card__menuDots{
+  width:22px; height:22px; opacity:.9; cursor:pointer;
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,.35));
+  transition:opacity .15s ease, transform .08s ease;
+  position:absolute;                  
+  top:12px; right:12px;                
+}
+.calendar-card__menuDots:hover{ opacity:1; }
+.calendar-card__menuDots:active{ transform:scale(.96); }
+
+.calendar-desc{ color:var(--p-accent-2); font-weight:800; margin:6px 0 6px; }
+.calendar-metaBlock{ margin:4px 0 10px; }
+.calendar-metaRow{ color:var(--p-muted); margin:4px 0; }
+
+.eventPreviewList{ display:flex; flex-direction:column; }
+.eventChip{
+  border:1px solid rgba(255,255,255,.12);
+  color:#FFFFFF;
+  padding:14px 16px;
+  border-radius:20px;
+  display:flex; align-items:center; gap:12px;
+  box-shadow:0 10px 24px rgba(0,0,0,.22);
+  backdrop-filter:saturate(110%);
+  overflow:hidden;
+}
+.eventChip + .eventChip{ margin-top:-10px; }
+.eventChip__icon{ width:20px; height:20px; object-fit:contain; opacity:.95; flex:0 0 20px; }
+.eventChip--noIcon .eventChip__icon{ display:none; }
+.eventChip__label{ font-weight:800; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+.eventMore{ margin-top:8px; color:var(--p-muted); font-weight:700; }
+
+@media (max-width: 820px){
+  .calendar-grid{ grid-template-columns: 1fr; }
+  .calendar-card{ width:auto; }
+  .identity-row{ align-items:flex-start; }
+  .identity-right{ justify-content:flex-start; }
+}
+
+.calendar-card,
+.calendar-card::after,
+.calendar-card .calendar-body{
+  transition: filter .18s ease, opacity .18s ease, box-shadow .18s ease, transform .18s ease, background-color .18s ease;
+}
+
+.calendar-card.card--menu-open{ z-index: 1000; }
+
+.calendar-card.is-inactive::after{          
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.22);
+  border-radius: inherit;
+  pointer-events: none;                    
+}
+
+.calendar-card.is-inactive .calendar-header{
+  opacity: .9;
+}
+
+.calendar-card.is-inactive:hover{
+  transform: none;
+  box-shadow: 0 16px 36px rgba(0,0,0,.28);
+}

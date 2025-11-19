@@ -1,0 +1,156 @@
+/* chronos-frontend/src/components/profile/newCalendarModal.css */
+.nc-overlay{
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(10,12,18,.55);
+  backdrop-filter: blur(2px);
+  display: grid; place-items: center;
+  padding: 24px;
+}
+
+.nc-modal{
+  width: min(550px, 96vw);
+  background: #151726;
+  color: #E8EEF7;
+  border-radius: 20px;
+  box-shadow: 0 30px 80px rgba(0,0,0,.5);
+  border: 2px solid #2C2D4C;
+  font-family: 'League Spartan', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  padding: 30px;
+}
+
+.nc-head{
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px;
+  align-items: end;
+  margin-bottom: 18px;
+}
+.nc-title{
+  margin: 0;
+  font-size: 30px; font-weight: 600;
+  color: #96C0BE;
+}
+
+.nc-title1{
+  margin: 0;
+  font-size: 30px; font-weight: 600;
+  color: #FFD3EC;
+}
+
+.nc-titleInput{
+  display: flex; align-items: center; gap: 10px;
+  font-size: 34px; font-weight: 700; color: #9aa3bd; 
+}
+
+.nc-titleInput .nc-caret{
+  display:inline-block;
+  width:6px;            
+  height:32px;      
+  background:#FFD3EC;
+  border-radius:999px; 
+  margin:0 -10px;
+}
+
+.nc-titleInput1 .nc-caret1 {
+  display:inline-block;
+  width:6px;            
+  height:32px;      
+  background:#96C0BE;
+  border-radius:999px; 
+  margin:0 -10px;
+}
+
+.nc-titleInput1{
+  display: flex; align-items: center; gap: 10px;
+  font-size: 34px; font-weight: 700; color: #9aa3bd; 
+}
+
+.nc-titleInput{
+  display: flex; align-items: center; gap: 10px;
+  font-size: 34px; font-weight: 700; color: #9aa3bd; 
+}
+
+.nc-titleInput1 input{
+  flex: 1; background: transparent; border: 0; outline: none;
+  color: #8C8C8C;
+  font: inherit;
+  font-size: 30px;
+  margin:0 10px;
+  font-weight: 650;
+
+}
+
+.nc-titleInput input{
+  flex: 1; background: transparent; border: 0; outline: none;
+  color: #8C8C8C;
+  font: inherit;
+  font-size: 30px;
+  margin:0 10px;
+  font-weight: 650;
+
+}
+
+.nc-titleInput1 input::placeholder{ color: #8C8C8C; font-size: 30px;}
+.nc-titleInput input::placeholder{ color: #8C8C8C; font-size: 30px;}
+
+.nc-field{ margin: 16px 0 18px; }
+.nc-field > label{
+  display: block; margin-bottom: 8px;
+  font-weight: 600; color: #96C0BE; font-size: 20px;
+}
+.nc-field input{
+ flex: 1; background: transparent; border: 0; outline: none;
+  color: #8C8C8C;
+  font: inherit;
+  font-size: 20px;
+  margin:0 10px;
+}
+.nc-field input::placeholder{ color:#8C8C8C; }
+
+.nc-swatches{
+  display: grid; gap: 15px;
+  grid-template-columns: repeat(4, 36px);
+}
+.nc-swatch{
+  width: 36px; height: 28px; border-radius: 999px;
+  background: #24263b; border: 2px solid #FFD3EC;
+  display: grid; place-items: center;
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+.nc-swatch .nc-dot{
+  width: 11px; height: 11px; border-radius: 999px;
+  background: var(--sw);
+  box-shadow: 0 0 0 6px rgba(255,255,255,.06) inset;
+}
+.nc-swatch.is-active{
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  transform: translateY(-2px);
+  border-color: #96C0BE;
+}
+
+.nc-error{
+  margin-top: -4px; margin-bottom: 10px;
+  color: #FFD3EC; font-weight: 700;
+}
+
+.nc-actions{
+  display: flex; justify-content: flex-end; gap: 12px;
+  margin-top: 6px;
+}
+.nc-btn{
+  appearance: none; border: 0; cursor: pointer;
+  background: #96C0BE; color: #FFFFFF; font-weight: 700;
+  border-radius: 12px; padding: 12px 20px; line-height: 1;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  font-family: 'League Spartan', system-ui, -apple-system, Segoe UI, Roboto,
+        Arial, sans-serif;
+        font-size: 15px;
+}
+.nc-btn[disabled]{ opacity:.6; cursor: not-allowed; }
+.nc-btn--ghost{
+  background: transparent; color: #E8EEF7; border: 1px solid #FFD3EC;
+  box-shadow: none;
+}
+
+body.modal-open{ overflow: hidden; }

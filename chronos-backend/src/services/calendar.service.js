@@ -13,7 +13,7 @@ export async function createMainCalendar(userId) {
     name: "Main",
     owner: userId,
     isMain: true,
-    color: "#22c55e",
+    color: "#151726",
     // владелец по умолчанию получает уведомления
     notifyActive: { [String(userId)]: true },
   });

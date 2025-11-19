@@ -96,7 +96,7 @@ export async function login(req, res) {
 export async function me(req, res) {
     try {
         const user = await User.findById(req.user.id)
-            .select({ email: 1, name: 1, avatar: 1 })
+            .select({ email: 1, name: 1, avatar: 1, createdAt: 1 }) // дата
             .lean();
 
         if (!user) return res.status(404).json({ error: 'not-found' });
@@ -107,6 +107,7 @@ export async function me(req, res) {
                 email: user.email,
                 name: user.name,
                 avatar: user.avatar, // <- ВАЖНО
+                createdAt: user.createdAt, // дата
             },
         });
     } catch (e) {

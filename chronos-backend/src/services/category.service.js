@@ -2,9 +2,9 @@
 import Category from '../models/Category.js';
 
 const DEFAULTS = [
-    { builtInKey: 'task', title: 'Task', color: '#f59e0b' },
-    { builtInKey: 'reminder', title: 'Reminder', color: '#22c55e' },
-    { builtInKey: 'arrangement', title: 'Arrangement', color: '#3b82f6' },
+    { builtInKey: 'task', title: 'Task', color: '#D86497' },
+    { builtInKey: 'reminder', title: 'Reminder', color: '#A7BBEE' },
+    { builtInKey: 'arrangement', title: 'Arrangement', color: '#D8AC89' },
 ];
 
 export async function ensureDefaultCategories() {

@@ -6,7 +6,7 @@ const { Schema } = mongoose;
 const calendarSchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
-    color: { type: String, default: "#3b82f6" },
+    color: { type: String, default: "#151726" },
     description: { type: String, trim: true },
 
     owner: { type: Schema.Types.ObjectId, ref: "User", required: true },
