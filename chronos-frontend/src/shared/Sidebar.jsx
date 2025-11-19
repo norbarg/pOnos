@@ -1,5 +1,6 @@
+// File: src/shared/Sidebar.jsx
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../features/auth/authActions';
 import './Sidebar.css';
@@ -9,12 +10,13 @@ import icCalActive from '../assets/calendar_active.png';
 import icEvent from '../assets/event_inactive.png';
 import icEventActive from '../assets/event_active.png';
 
-// ИКОНКИ ТЕМЫ: твои два файла (положи их в /src/assets/)
-import icThemeLight from '../assets/theme_dark.png'; // для тёмной темы
-import icThemeDark from '../assets/theme_light.png'; // для светлой темы
+import icThemeLight from '../assets/theme_dark.png';
+import icThemeDark from '../assets/theme_light.png';
 import icLogout from '../assets/logout.png';
 
 import { absUrl } from '../config/apiOrigin';
+
+const CAL_RESET_FLAG = 'calendar:_reset_on_enter';
 
 function firstLetter(user) {
     const s =
@@ -31,7 +33,7 @@ function getAvatarUrl(user) {
         user?.avatarUrl ||
         user?.avatar_url ||
         user?.photo ||
-        null; // на бэке хранится вроде "/uploads/avatars/xxx.png"
+        null;
     return absUrl(raw);
 }
 
@@ -70,24 +72,44 @@ export default function Sidebar() {
     const activeIndex = items.findIndex((it) =>
         pathname.toLowerCase().startsWith(it.to)
     );
+    const idx = activeIndex >= 0 ? activeIndex : 0;
 
-    // синхрон с CSS-переменными
+    // ===== slider positioning by real DOM =====
+    const navRef = useRef(null);
+    const sliderRef = useRef(null);
     const [sliderTop, setSliderTop] = useState(0);
-    useEffect(() => {
-        const cssNum = (name, fallback) => {
-            const v = getComputedStyle(document.documentElement)
-                .getPropertyValue(name)
-                .trim();
-            const n = parseFloat(v);
-            return Number.isFinite(n) ? n : fallback;
-        };
-        const rowH = cssNum('--slot-h', 75);
-        const topBase = cssNum('--top-base', 40);
-        const idx = activeIndex >= 0 ? activeIndex : 0;
-        setSliderTop(topBase + idx * rowH);
-    }, [activeIndex]);
 
-    // тема + смена иконки
+    const placeSlider = () => {
+        const navEl = navRef.current;
+        const sliderEl = sliderRef.current;
+        if (!navEl || !sliderEl) return;
+
+        const links = navEl.querySelectorAll('.side__link');
+        const target = links[idx];
+        if (!target) return;
+
+        // координата относительно nav
+        const top =
+            target.offsetTop +
+            (target.clientHeight - sliderEl.clientHeight) / 2;
+        setSliderTop(top);
+    };
+
+    // пересчитываем при смене роута/темы/аватара и при ресайзе
+    useLayoutEffect(() => {
+        placeSlider();
+    }, [pathname, idx]);
+    useEffect(() => {
+        const onResize = () => placeSlider();
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
+    // если аватар загрузился/упал — высота пункта могла измениться
+    const onAvatarLoadOrError = () => {
+        setTimeout(placeSlider, 0);
+    };
+
+    // ===== theme toggle =====
     const [theme, setTheme] = useState(
         document.documentElement.dataset.theme || 'dark'
     );
@@ -96,29 +118,44 @@ export default function Sidebar() {
         const t = saved === 'light' || saved === 'dark' ? saved : 'dark';
         document.documentElement.dataset.theme = t;
         setTheme(t);
+        // на случай смены системного шрифта/масштаба
+        setTimeout(placeSlider, 0);
     }, []);
     const onToggleTheme = () => {
         const next = theme === 'light' ? 'dark' : 'light';
         document.documentElement.dataset.theme = next;
         localStorage.setItem('theme', next);
         setTheme(next);
+        setTimeout(placeSlider, 0);
     };
 
     return (
         <aside className="side">
             <div className="side__inner">
-                {/* ползунок на стыке (поверх всего) */}
-                <div
-                    className="side__slider"
-                    style={{ top: `${sliderTop + 10}px` }}
-                />
+                <nav ref={navRef} className="side__nav">
+                    {/* ползунок теперь внутри nav и позиционируется относительно него */}
+                    <div
+                        ref={sliderRef}
+                        className="side__slider"
+                        style={{ top: `${sliderTop}px` }}
+                    />
 
-                {/* верх: строго три слота */}
-                <nav className="side__nav">
                     {items.map((it) => (
                         <NavLink
                             key={it.key}
                             to={it.to}
+                            onClick={
+                                it.key === 'calendars'
+                                    ? () => {
+                                          try {
+                                              sessionStorage.setItem(
+                                                  CAL_RESET_FLAG,
+                                                  '1'
+                                              );
+                                          } catch {}
+                                      }
+                                    : undefined
+                            }
                             className={({ isActive }) =>
                                 'side__link' + (isActive ? ' is-active' : '')
                             }
@@ -132,13 +169,18 @@ export default function Sidebar() {
                                             alt="profile"
                                             loading="lazy"
                                             decoding="async"
-                                            onError={() => setAvatarError(true)} // <- если 404/ошибка — показываем букву
+                                            onLoad={onAvatarLoadOrError}
+                                            onError={() => {
+                                                setAvatarError(true);
+                                                onAvatarLoadOrError();
+                                            }}
                                             referrerPolicy="no-referrer"
                                         />
                                     ) : (
                                         <div
                                             className="side__iconAvatarFallback"
                                             aria-label="profile"
+                                            onLoad={onAvatarLoadOrError}
                                         >
                                             <span>{userInitial}</span>
                                         </div>
@@ -148,6 +190,7 @@ export default function Sidebar() {
                                         className="side__icon"
                                         src={isActive ? it.iconActive : it.icon}
                                         alt={it.key}
+                                        onLoad={onAvatarLoadOrError}
                                     />
                                 )
                             }
@@ -155,7 +198,7 @@ export default function Sidebar() {
                     ))}
                 </nav>
 
-                {/* низ: без подписей */}
+                {/* низ */}
                 <div className="side__bottom">
                     <button
                         className="side__tool"

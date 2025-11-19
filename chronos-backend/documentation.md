@@ -9,7 +9,7 @@
 -   login
 
 ```
-    curl.exe -X POST "http://localhost:8000/auth/login" -H "Content-Type: application/json" -d "{\"email\":\"koliasleshev@gmail.com\",\"password\":\"password123\"}"
+    curl.exe -X POST "http://localhost:8000/auth/login" -H "Content-Type: application/json" -d "{\"email\":\"user3@example.com\",\"password\":\"qwerty123\"}"
 
 ```
 
@@ -58,14 +58,14 @@
 -   create category
 
 ```
-curl.exe -X POST "http://localhost:8000/categories" -H "Authorization: Bearer %TOKEN%" -H "Content-Type: application/json" -d "{\"title\":\"Work\",\"color\":\"#ff00aa\"}"
+curl.exe -X POST "http://localhost:8000/categories" -H "Authorization: Bearer %TOKEN%" -H "Content-Type: application/json" -d "{\"title\":\"Work\",\"color\":\"#000BFF\"}"
 
 ```
 
 -   create event
 
 ```
-curl.exe -X POST "http://localhost:8000/calendars/%CAL_ID%/events" -H "Authorization: Bearer %TOKEN%" -H "Content-Type: application/json" -d "{\"title\":\"Sprint planning\",\"description\":\"Zoom link...\",\"start\":\"2025-11-06T09:00:00.000Z\",\"end\":\"2025-11-06T10:00:00.000Z\",\"categoryId\":\"%CAT_ID%\"}"
+curl.exe -X POST "http://localhost:8000/calendars/%CAL_ID%/events" -H "Authorization: Bearer %TOKEN%" -H "Content-Type: application/json" -d "{\"title\":\"porno games\",\"description\":\"Zoom link...\",\"start\":\"2025-11-06T09:00:00.000Z\",\"end\":\"2025-11-06T10:00:00.000Z\",\"categoryId\":\"%CAT_ID%\"}"
 
 
 ```
@@ -147,6 +147,14 @@ curl.exe -X PATCH "http://localhost:8000/users/me" ^
 
 ```
 
+```
+curl.exe -X PATCH "http://localhost:8000/users/me" ^
+  -H "Authorization: Bearer %TOKEN%" ^
+  -H "Content-Type: application/json" ^
+  -d  "{\"name\":\"ggg\"}"
+
+```
+
 -   delete user
 
 ```
@@ -159,10 +167,10 @@ curl.exe -X DELETE "http://localhost:8000/users/me" ^
 -   share cal
 
 ```
-curl.exe -X POST "http://localhost:8000/calendars/%CAL_ID%/share" ^
+curl.exe -X POST "http://localhost:8000/calendars/690e06337dbe74e1dea502c1/share" ^
   -H "Authorization: Bearer %TOKEN%" ^
   -H "Content-Type: application/json" ^
-  -d "{\"email\":\"koliasleshev@gmail.com\",\"role\":\"editor\"}"
+  -d "{\"email\":\"user3@example.com\",\"role\":\"editor\"}"
 
 
 ```

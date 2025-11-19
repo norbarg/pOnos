@@ -4,7 +4,6 @@
     --side-border: rgba(255, 255, 255, 0.06);
 
     /* размеры нав-слотов — синхронизированы с JS */
-    --slot-h: 75px; /* высота каждого пункта (profile, calendar, event) */
     --top-base: 35px; /* отступ сверху до первого пункта */
 
     --icon-hover-filter: brightness(1.15)
@@ -60,7 +59,7 @@ html[data-theme='light'] {
     position: relative;
     margin-top: var(--top-base);
     display: grid;
-    grid-auto-rows: var(--slot-h);
+    gap: 30px;
     justify-items: center;
     align-content: start;
 }

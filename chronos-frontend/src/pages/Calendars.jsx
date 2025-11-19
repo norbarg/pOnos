@@ -1,10 +1,815 @@
-export default function Calendars() {
-    // пока пусто — сюда потом вставим главный календарь
+// File: src/pages/Calendars.jsx
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import WeekView from '../components/Calendar/WeekView';
+import MonthView from '../components/Calendar/MonthView';
+import YearView from '../components/Calendar/YearView';
+import AccessPanel from '../components/Calendar/AccessPanel';
+import { api } from '../api/axios';
+import '../styles/Calendar.css';
+
+import appIcon from '../assets/logo.png';
+import icFilter from '../assets/filter.png';
+import icFilterOn from '../assets/filter_on.png';
+import icSearch from '../assets/search.png';
+import icGear from '../assets/gear.png';
+import icSendArrow from '../assets/arrow_up_right.png'; // или .svg
+
+// ключи для localStorage
+const LS_VIEW = 'calendar:viewMode';
+const LS_DATE = 'calendar:currentDate';
+const SS_RESET = 'calendar:_reset_on_enter';
+
+/** utils */
+function startOfWeek(d) {
+    const x = new Date(d);
+    const day = (x.getDay() + 6) % 7;
+    x.setHours(0, 0, 0, 0);
+    x.setDate(x.getDate() - day);
+    return x;
+}
+function addDays(d, n) {
+    const x = new Date(d);
+    x.setDate(x.getDate() + n);
+    return x;
+}
+function addMonths(d, n) {
+    const x = new Date(d);
+    x.setMonth(x.getMonth() + n);
+    return x;
+}
+function monthFirstDay(y, m) {
+    return new Date(y, m, 1);
+}
+function monthLastDay(y, m) {
+    return new Date(y, m + 1, 0, 23, 59, 59, 999);
+}
+function fmtISO(d) {
+    return d.toISOString();
+}
+function mergeEvents(a, b) {
+    const map = new Map();
+    [...a, ...b].forEach((e) => {
+        const key =
+            (e.id || e._id || Math.random()) +
+            '|' +
+            (e.start instanceof Date ? e.start.toISOString() : e.start);
+        if (!map.has(key)) map.set(key, e);
+    });
+    return [...map.values()];
+}
+function startOfWeekLocal(d) {
+    const x = new Date(d);
+    const day = (x.getDay() + 6) % 7;
+    x.setHours(0, 0, 0, 0);
+    x.setDate(x.getDate() - day);
+    return x;
+}
+function sameDay(a, b) {
     return (
-        <div style={{ height: '100%', display: 'grid', placeItems: 'center' }}>
-            <div className="card" style={{ minWidth: 320 }}>
-                <h2 style={{ margin: 0 }}>Main calendar</h2>
-                <p className="muted">Пока пустая страница.</p>
+        a.getFullYear() === b.getFullYear() &&
+        a.getMonth() === b.getMonth() &&
+        a.getDate() === b.getDate()
+    );
+}
+
+function WeekPickerPopover({ open, currentDate, onClose, onSelectWeek }) {
+    const ref = React.useRef(null);
+    const [view, setView] = useState(
+        new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+    );
+
+    useEffect(() => {
+        if (!open) return;
+        const onDoc = (e) => {
+            if (!ref.current) return;
+            if (!ref.current.contains(e.target)) onClose?.();
+        };
+        document.addEventListener('mousedown', onDoc, { passive: true });
+        return () => document.removeEventListener('mousedown', onDoc);
+    }, [open, onClose]);
+
+    const y = view.getFullYear();
+    const m = view.getMonth();
+
+    const firstOfMonth = new Date(y, m, 1);
+    const firstGrid = startOfWeekLocal(firstOfMonth); // с понедельника
+    const days = Array.from(
+        { length: 42 },
+        (_, i) =>
+            new Date(
+                firstGrid.getFullYear(),
+                firstGrid.getMonth(),
+                firstGrid.getDate() + i
+            )
+    );
+
+    const curWeekStart = startOfWeekLocal(currentDate);
+
+    return (
+        <div ref={ref} className={`weekpicker-popover ${open ? 'open' : ''}`}>
+            <div className="weekpicker-head">
+                <button
+                    className="icon"
+                    onClick={() => setView(new Date(y, m - 1, 1))}
+                    aria-label="prev-month"
+                >
+                    ‹
+                </button>
+                <div className="label">
+                    {new Date(y, m, 1).toLocaleDateString('en-US', {
+                        month: 'long',
+                        year: 'numeric',
+                    })}
+                </div>
+                <button
+                    className="icon"
+                    onClick={() => setView(new Date(y, m + 1, 1))}
+                    aria-label="next-month"
+                >
+                    ›
+                </button>
+            </div>
+
+            <div className="weekpicker-dow">
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
+                    <div key={d} className="dow">
+                        {d}
+                    </div>
+                ))}
+            </div>
+
+            {/* 6 строк-«недель» */}
+            <div className="weekpicker-weeks">
+                {Array.from({ length: 6 }, (_, row) => {
+                    const rowDays = days.slice(row * 7, row * 7 + 7);
+                    const rowWeekStart = startOfWeekLocal(rowDays[0]);
+                    const selectedRow = sameDay(rowWeekStart, curWeekStart);
+                    return (
+                        <div
+                            key={row}
+                            className={`week-row ${
+                                selectedRow ? 'selected' : ''
+                            }`}
+                            onClick={() => {
+                                onSelectWeek?.(rowWeekStart);
+                                onClose?.();
+                            }}
+                        >
+                            {rowDays.map((d, i) => {
+                                const inMonth = d.getMonth() === m;
+                                return (
+                                    <div
+                                        key={i}
+                                        className={`cell ${
+                                            inMonth ? 'in' : 'out'
+                                        }`}
+                                        data-date={d.toISOString()}
+                                    >
+                                        <span className="dd">
+                                            {d.getDate()}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
+/** Filter popover (общий для всех режимов) */
+function FilterPopover({
+    open,
+    viewMode,
+    setViewMode,
+    categories,
+    setCategories,
+    categoryDefs,
+    onClose,
+    anchorRef,
+}) {
+    const popRef = React.useRef(null);
+
+    // click-away
+    React.useEffect(() => {
+        if (!open) return;
+        const onDocDown = (e) => {
+            const pop = popRef.current;
+            const btn = anchorRef?.current;
+            if (!pop) return;
+            const insidePop = pop.contains(e.target);
+            const insideBtn = btn && btn.contains(e.target);
+            if (!insidePop && !insideBtn) onClose?.();
+        };
+        document.addEventListener('pointerdown', onDocDown, true);
+        return () =>
+            document.removeEventListener('pointerdown', onDocDown, true);
+    }, [open, onClose, anchorRef]);
+
+    // Esc
+    React.useEffect(() => {
+        if (!open) return;
+        const onKey = (e) => e.key === 'Escape' && onClose?.();
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [open, onClose]);
+
+    // 👉 если закрыт — не рендерим вовсе
+    if (!open) return null;
+
+    const Title = ({ children, right }) => (
+        <div className="fp-row">
+            <div className="title">{children}</div>
+            {right}
+        </div>
+    );
+    const Cap = (s) => s[0].toUpperCase() + s.slice(1);
+    const allSlugs = (categoryDefs || []).map((c) => c.slug);
+    return (
+        <div ref={popRef} className={`filter-popover ${open ? 'open' : ''}`}>
+            <div className="section">
+                <Title>Filter by time</Title>
+                <div className="segmented">
+                    {['year', 'month', 'week'].map((v) => (
+                        <button
+                            key={v}
+                            className={viewMode === v ? 'active' : ''}
+                            onClick={() => {
+                                setViewMode(v);
+                                onClose?.();
+                            }}
+                        >
+                            {Cap(v)}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className="section">
+                <Title
+                    right={
+                        <button
+                            className="link"
+                            onClick={() => setCategories(allSlugs)} // RESET = усі з беку
+                        >
+                            Clear
+                        </button>
+                    }
+                >
+                    Filter by categories
+                </Title>
+
+                <div className="tags">
+                    {(categoryDefs || []).map((cat) => (
+                        <label key={cat.slug} className="tag-wrap">
+                            <input
+                                type="checkbox"
+                                checked={categories.includes(cat.slug)}
+                                onChange={() =>
+                                    setCategories((prev) =>
+                                        prev.includes(cat.slug)
+                                            ? prev.filter((s) => s !== cat.slug)
+                                            : [...prev, cat.slug]
+                                    )
+                                }
+                            />
+                            {/* Інлайн-варіанти кольорів через CSS-перемінні */}
+                            <span
+                                className="tag"
+                                data-cat={cat.slug}
+                                style={{
+                                    '--br': cat.color,
+                                    '--dot': cat.color,
+                                }}
+                            >
+                                {cat.name}
+                            </span>
+                        </label>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default function CalendarsPage() {
+    const resetOnEnter = (() => {
+        try {
+            const v = sessionStorage.getItem(SS_RESET);
+            if (v) sessionStorage.removeItem(SS_RESET);
+            return !!v;
+        } catch {
+            return false;
+        }
+    })();
+
+    // 2) Используем ли сохранённое из LS при этом входе?
+    // Если был «resetOnEnter» — НЕ используем LS (стартуем Week + сегодня).
+    // Если не было — используем LS (первый вход, deep-link, reload).
+    const useStored = !resetOnEnter;
+
+    const [viewMode, setViewMode] = useState(() => {
+        if (useStored) {
+            try {
+                const v = localStorage.getItem(LS_VIEW);
+                return v === 'year' || v === 'month' || v === 'week'
+                    ? v
+                    : 'week';
+            } catch {}
+        }
+        return 'week';
+    });
+
+    const [currentDate, setCurrentDate] = useState(() => {
+        if (useStored) {
+            try {
+                const raw = localStorage.getItem(LS_DATE);
+                const d = raw ? new Date(raw) : new Date();
+                return isNaN(d.getTime()) ? new Date() : d;
+            } catch {}
+        }
+        return new Date();
+    });
+
+    const [mainCal, setMainCal] = useState(null);
+    const [holidayCal, setHolidayCal] = useState(null);
+    const [events, setEvents] = useState([]);
+    const [catDefs, setCatDefs] = useState([]);
+
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterOpen, setFilterOpen] = useState(false);
+    const filterBtnRef = useRef(null);
+    const [categories, setCategories] = useState([]);
+
+    const [sharedWith, setSharedWith] = useState([]);
+    const [weekPickerOpen, setWeekPickerOpen] = useState(false);
+
+    const gearBtnRef = useRef(null);
+    const [accessOpen, setAccessOpen] = useState(false);
+    const accessPopRef = useRef(null);
+    const [accessPos, setAccessPos] = useState({ top: 56, left: 0 }); // для позиционирования
+
+    const normalizeCategory = (c) => ({
+        id: c.id ?? c._id,
+        slug:
+            c.slug ??
+            (c.name || c.title || 'category')
+                .toLowerCase()
+                .replace(/\s+/g, '-')
+                .replace(/[^a-z0-9-]/g, ''),
+        name: c.name ?? c.title ?? c.slug ?? 'Category',
+        color: c.color ?? c.hex ?? '#e9d5ff',
+    });
+    // NEW: фетчимо категорії
+    useEffect(() => {
+        (async () => {
+            try {
+                const { data } = await api.get('/categories'); // твій ендпойнт
+                const list = (data?.categories ?? data ?? []).map(
+                    normalizeCategory
+                );
+                setCatDefs(list);
+            } catch (e) {
+                // запасні дефолти, якщо бек недоступний
+                setCatDefs([
+                    {
+                        slug: 'arrangement',
+                        name: 'Arrangement',
+                        color: '#E0BDA1',
+                    },
+                    { slug: 'reminder', name: 'Reminder', color: '#B9C9F1' },
+                    { slug: 'task', name: 'Task', color: '#E083AC' },
+                ]);
+            }
+        })();
+    }, []);
+
+    // NEW: коли оновився довідник категорій — виставляємо вибрані (за замовчуванням: усі)
+    useEffect(() => {
+        if (!catDefs.length) return;
+        setCategories((prev) => {
+            const all = catDefs.map((c) => c.slug);
+            const cur = prev.filter((s) => all.includes(s));
+            return cur.length ? cur : all;
+        });
+    }, [catDefs]);
+
+    const headerLabel =
+        viewMode === 'year'
+            ? `Year ${currentDate.getFullYear()}`
+            : currentDate.toLocaleDateString('en-US', {
+                  month: 'long',
+                  year: 'numeric',
+              });
+
+    const loadedMonthsRef = useRef(new Set());
+    const autoNavRef = useRef(false); // игнорировать репорты от MonthView, пока идёт авто-навигация
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const { data } = await api.get('/calendars');
+                const cals = data?.calendars || [];
+                const main = cals.find((c) => c.isMain) || cals[0];
+                const hol = cals.find(
+                    (c) => c.isSystem && c.systemType === 'holidays'
+                );
+                setMainCal(main || null);
+                setHolidayCal(hol || null);
+            } catch (e) {
+                console.warn('load calendars failed', e?.message);
+            }
+        })();
+    }, []);
+
+    useEffect(() => {
+        if (!mainCal) return;
+        if (viewMode === 'week') {
+            const from = startOfWeek(currentDate),
+                to = addDays(from, 7);
+            loadRange(from, to, true);
+        }
+        if (viewMode === 'month') {
+            const y = currentDate.getFullYear(),
+                m = currentDate.getMonth();
+            const key = `${y}-${String(m + 1).padStart(2, '0')}`;
+            if (!loadedMonthsRef.current.has(key)) {
+                loadedMonthsRef.current.add(key);
+                loadMonth(y, m);
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [mainCal, holidayCal, currentDate, viewMode]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem(LS_VIEW, viewMode);
+        } catch {}
+    }, [viewMode]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem(LS_DATE, currentDate.toISOString());
+        } catch {}
+    }, [currentDate]);
+
+    async function loadRange(from, to, replace = false) {
+        try {
+            const [a, b] = await Promise.all([
+                api.get(`/calendars/${mainCal.id}/events`, {
+                    params: { from: fmtISO(from), to: fmtISO(to) },
+                }),
+                holidayCal
+                    ? api.get(`/calendars/${holidayCal.id}/events`, {
+                          params: { from: fmtISO(from), to: fmtISO(to) },
+                      })
+                    : Promise.resolve({ data: { events: [] } }),
+            ]);
+            const conv = (ev) => ({
+                ...ev,
+                id: ev.id || ev._id,
+                start: new Date(ev.start),
+                end: new Date(ev.end),
+                category: ev.category?.slug || ev.category || 'arrangement',
+            });
+            const merged = mergeEvents(
+                a.data?.events?.map(conv) || [],
+                b.data?.events?.map(conv) || []
+            );
+            setEvents((prev) => (replace ? merged : mergeEvents(prev, merged)));
+        } catch (e) {
+            console.error('loadRange error', e?.message);
+        }
+    }
+    async function loadMonth(year, month) {
+        const from = monthFirstDay(year, month),
+            to = addDays(monthLastDay(year, month), 1);
+        await loadRange(from, to, false);
+    }
+
+    useEffect(() => {
+        (async () => {
+            if (accessOpen && mainCal) {
+                try {
+                    const { data } = await api.get(
+                        `/calendars/${mainCal.id}/members`
+                    );
+                    const list = [data.owner, ...(data.members || [])]
+                        .filter(Boolean)
+                        .map((x) => ({
+                            id: x.id,
+                            email: x.email,
+                            name: x.name,
+                            permission:
+                                x.role === 'owner'
+                                    ? 'owner'
+                                    : x.role === 'editor'
+                                    ? 'edit'
+                                    : 'view',
+                        }));
+                    setSharedWith(list);
+                } catch (e) {
+                    console.warn('load members failed', e?.message);
+                }
+            }
+        })();
+    }, [accessOpen, mainCal]);
+    useEffect(() => {
+        if (!accessOpen) return;
+        const btn = gearBtnRef.current;
+        if (!btn) return;
+        const r = btn.getBoundingClientRect();
+        const width = 420; // ширина поповера из CSS
+        const gap = 8;
+        const top = r.bottom + gap;
+        const left = Math.min(
+            window.innerWidth - width - 16,
+            Math.max(16, r.right - width) // выравниваем правый край к кнопке
+        );
+        setAccessPos({ top, left });
+    }, [accessOpen]);
+
+    // click-away
+    useEffect(() => {
+        if (!accessOpen) return;
+        const onDoc = (e) => {
+            const pop = accessPopRef.current;
+            const btn = gearBtnRef.current;
+            const inPop = pop && pop.contains(e.target);
+            const inBtn = btn && btn.contains(e.target);
+            if (!inPop && !inBtn) setAccessOpen(false);
+        };
+        document.addEventListener('pointerdown', onDoc, true);
+        return () => document.removeEventListener('pointerdown', onDoc, true);
+    }, [accessOpen]);
+
+    // Esc
+    useEffect(() => {
+        if (!accessOpen) return;
+        const onKey = (e) => e.key === 'Escape' && setAccessOpen(false);
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [accessOpen]);
+
+    // стрелки: для month — шаг по МЕСЯЦАМ; для week — по НЕДЕЛЯМ
+    function handlePrevNext(delta) {
+        if (viewMode === 'month') {
+            autoNavRef.current = true; // ← включаем «глушилку»
+            setCurrentDate((d) => addMonths(d, delta));
+        } else {
+            setCurrentDate((d) => addDays(d, delta * 7));
+        }
+    }
+
+    function handleYearSelect(y) {
+        const d = new Date(currentDate);
+        d.setFullYear(y);
+        d.setMonth(0);
+        d.setDate(1);
+        setCurrentDate(d);
+        setViewMode('month');
+    }
+
+    function handleMonthChange(y, m) {
+        const key = `${y}-${String(m + 1).padStart(2, '0')}`;
+        if (loadedMonthsRef.current.has(key)) return;
+        loadedMonthsRef.current.add(key);
+        loadMonth(y, m);
+    }
+
+    async function inviteUser(email, perm) {
+        if (!mainCal) return;
+        await api.post(`/calendars/${mainCal.id}/share`, {
+            email,
+            permission: perm,
+        });
+    }
+    async function changePermission(userId, perm) {
+        if (!mainCal) return;
+        await api.patch(`/calendars/${mainCal.id}/members/${userId}`, {
+            role: perm === 'edit' ? 'editor' : 'member',
+        });
+        setSharedWith((prev) =>
+            prev.map((u) => (u.id === userId ? { ...u, permission: perm } : u))
+        );
+    }
+    async function removeAccess(userId) {
+        if (!mainCal) return;
+        await api.delete(`/calendars/${mainCal.id}/members/${userId}`);
+        setSharedWith((prev) => prev.filter((u) => u.id !== userId));
+    }
+
+    const visibleEvents = useMemo(() => {
+        const q = searchQuery.trim().toLowerCase();
+        return events.filter((e) => {
+            const catOK = categories.includes(e.category) || e.isHoliday;
+            const text = (e.title || '') + ' ' + (e.description || '');
+            return catOK && (!q || text.toLowerCase().includes(q));
+        });
+    }, [events, searchQuery, categories]);
+
+    const weekStart = startOfWeek(currentDate);
+    const DEFAULT_CATS = ['arrangement', 'reminder', 'task'];
+    const isSameCats = (a, b) =>
+        a.length === b.length && a.every((x) => b.includes(x));
+    const ALL_SLUGS = useMemo(() => catDefs.map((c) => c.slug), [catDefs]);
+    const isSame = (a, b) =>
+        a.length === b.length && a.every((x) => b.includes(x));
+    const filterApplied = !isSame(categories, ALL_SLUGS);
+
+    return (
+        <div className="calendar-container">
+            {/* App bar */}
+            <div className="calendar-appbar">
+                <div className="brand">
+                    <span className="brand__name">Calendar</span>
+                    <img className="brand__logo" src={appIcon} alt="app" />
+                </div>
+            </div>
+
+            {/* Header */}
+            <div
+                className={`calendar-header ${
+                    viewMode === 'year' ? 'calendar-header--year' : ''
+                }`}
+            >
+                <div className="hdr-left">
+                    {/* FILTER ICON */}
+
+                    <button
+                        ref={filterBtnRef}
+                        className={`btn-icon filter-btn${
+                            filterApplied ? ' is-on' : ''
+                        }`}
+                        onClick={() => setFilterOpen((v) => !v)}
+                        aria-label="Filter / View"
+                        title="Filter / View"
+                    >
+                        <img
+                            src={filterApplied ? icFilterOn : icFilter}
+                            alt="filter"
+                        />
+                    </button>
+
+                    <FilterPopover
+                        open={filterOpen}
+                        viewMode={viewMode}
+                        setViewMode={setViewMode}
+                        categories={categories}
+                        setCategories={setCategories}
+                        categoryDefs={catDefs}
+                        anchorRef={filterBtnRef} // ← NEW
+                        onClose={() => setFilterOpen(false)}
+                    />
+
+                    {/* NAV + PERIOD */}
+                    {viewMode !== 'year' && (
+                        <>
+                            <button
+                                className="btn-icon nav"
+                                onClick={() => handlePrevNext(-1)}
+                                aria-label="prev"
+                            >
+                                ‹
+                            </button>
+
+                            <button
+                                className="btn-icon nav"
+                                onClick={() => handlePrevNext(+1)}
+                                aria-label="next"
+                            >
+                                ›
+                            </button>
+                            <div className="period">
+                                <span className="period-text">
+                                    {headerLabel}
+                                </span>
+                                {viewMode === 'week' && (
+                                    <>
+                                        <button
+                                            className="btn-caret"
+                                            aria-label="choose week"
+                                            onClick={() =>
+                                                setWeekPickerOpen((v) => !v)
+                                            }
+                                        >
+                                            ▾
+                                        </button>
+                                        <WeekPickerPopover
+                                            open={weekPickerOpen}
+                                            currentDate={currentDate}
+                                            onClose={() =>
+                                                setWeekPickerOpen(false)
+                                            }
+                                            onSelectWeek={(ws) =>
+                                                setCurrentDate(ws)
+                                            }
+                                        />
+                                    </>
+                                )}
+                            </div>
+                        </>
+                    )}
+
+                    {viewMode === 'year' && (
+                        <div className="period">
+                            <span className="period-text">{headerLabel}</span>
+                        </div>
+                    )}
+                </div>
+
+                <div className="hdr-right">
+                    {(viewMode === 'week' || viewMode === 'month') && (
+                        <div className="searchbox">
+                            <input
+                                className="search-input"
+                                placeholder="Search"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                            <img
+                                className="search-ico"
+                                src={icSearch}
+                                alt="search"
+                            />
+                        </div>
+                    )}
+
+                    <button
+                        ref={gearBtnRef}
+                        className="btn-icon gear"
+                        onClick={() => setAccessOpen((v) => !v)}
+                        aria-label="access"
+                    >
+                        <img src={icGear} alt="settings" />
+                    </button>
+                    {accessOpen && (
+                        <div
+                            ref={accessPopRef}
+                            className="access-popover"
+                            style={{
+                                position: 'fixed',
+                                top: accessPos.top,
+                                left: accessPos.left,
+                            }}
+                        >
+                            <AccessPanel
+                                sharedWith={sharedWith}
+                                onInvite={inviteUser}
+                                onChangePermission={changePermission}
+                                onRemove={removeAccess}
+                                sendIcon={icSendArrow}
+                            />
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Body */}
+            <div className="calendar-body">
+                {viewMode === 'week' && (
+                    <WeekView
+                        weekStart={weekStart}
+                        events={visibleEvents}
+                        filters={categories}
+                        onDateSelect={(d) => setCurrentDate(d)}
+                    />
+                )}
+                {viewMode === 'month' && (
+                    <MonthView
+                        initialYear={currentDate.getFullYear()}
+                        initialMonth={currentDate.getMonth()}
+                        activeYear={currentDate.getFullYear()}
+                        activeMonth={currentDate.getMonth()}
+                        events={visibleEvents}
+                        filters={categories}
+                        onMonthChange={handleMonthChange}
+                        onViewportMonthChange={(y, m) => {
+                            if (autoNavRef.current) return; // ← не даём «мигать» заголовку
+                            const d = new Date(currentDate);
+                            d.setFullYear(y);
+                            d.setMonth(m);
+                            d.setDate(1);
+                            setCurrentDate(d);
+                        }}
+                        onAutoScrollDone={() => {
+                            // ← MonthView сообщает, что всё докрутилось
+                            autoNavRef.current = false;
+                        }}
+                        onDateSelect={(d) => {
+                            setCurrentDate(d);
+                            setViewMode('week');
+                        }}
+                    />
+                )}
+                {viewMode === 'year' && (
+                    <YearView
+                        initialYear={currentDate.getFullYear()}
+                        onYearSelect={handleYearSelect}
+                    />
+                )}
             </div>
         </div>
     );
