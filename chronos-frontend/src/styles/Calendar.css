@@ -1,0 +1,890 @@
+/* ==========================================================================
+   Calendar (Week / Month / Year) — single clean stylesheet
+   ========================================================================== */
+
+/* ---------- palette / tokens ---------- */
+:root {
+    --bg: #24253b;
+    --bg-theme: #2c2d4c;
+    --border: #151726;
+    --muted: #94a3b8;
+    --text: #8c8c8c;
+    --text-theme: #ffffff;
+    --hover-theme: #2a2b48;
+
+    /* event tags (по макету) */
+    --arr-bg: #ffd3ec; /* pink */
+    --arr-br: #ffc4e6;
+    --rem-bg: #dbeafe; /* blue */
+    --rem-br: #cfe0fb;
+    --task-bg: #f3e8d8; /* sand */
+    --task-br: #e8d9c9;
+
+    --slot-h: 24px; /* 30 минут / строка */
+    --radius-sm: 10px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+
+    --shadow-pop: 0 10px 30px rgba(17, 24, 39, 0.08);
+    --shadow-card: 0 6px 22px rgba(15, 23, 42, 0.06);
+    --appbar-h: 56px; /* высота верхней полосы с логотипом */
+    --header-h: 56px; /* высота панели навигации календаря */
+
+    --scroll-size: 8px;
+    --scroll-thumb: #96c0be; /* основной цвет ползунка */
+    --scroll-thumb-hover: #5d6294; /* при наведении */
+    --scroll-track: transparent; /* трек почти невидимый */
+}
+/* ---------- page container ---------- */
+
+.calendar-container {
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    color: var(--text);
+    overflow-x: hidden;
+}
+.calendar-appbar {
+    padding: 7px 42px 7px;
+    border-bottom: 2px solid var(--border);
+    position: relative;
+    background: #2c2d4c;
+    display: grid;
+    align-items: center;
+    margin-left: calc(-1 * 28px);
+    margin-right: calc(-1 * 28px);
+    color: #8c8c8c;
+}
+.calendar-appbar .brand {
+    display: flex;
+    align-items: center;
+    grid-column: 1 / -1;
+}
+
+.calendar-appbar .brand__logo {
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+    opacity: 0.95;
+    margin-left: auto;
+}
+.calendar-appbar .brand__name {
+    font-size: 25px;
+    font-weight: 700;
+}
+
+/* HEADER LAYOUT */
+.calendar-header {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 45px;
+    background: var(--bg-theme);
+    border-bottom: 2px solid var(--border);
+}
+.hdr-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.hdr-right {
+    display: flex;
+    align-items: center;
+    gap: 35px;
+}
+
+/* ICON BUTTONS */
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+}
+.btn-icon:hover {
+    scale: 1.01;
+}
+.btn-icon img {
+    width: 26px;
+    height: auto;
+    pointer-events: none;
+}
+
+.btn-icon.nav {
+    font-size: 25px;
+    line-height: 1;
+    color: var(--text);
+    width: 28px;
+}
+.btn-caret {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--text);
+    font-size: 20px;
+    transform: translateY(4px);
+}
+.btn-caret:hover {
+    scale: 1.05;
+}
+
+/* PERIOD */
+.period {
+    display: flex;
+    align-items: end;
+}
+.period-text {
+    color: var(--text-theme);
+    font-weight: 600;
+    font-size: 18px;
+}
+
+/* SEARCH */
+.searchbox {
+    position: relative;
+    width: 200px;
+    max-width: 32vw;
+}
+.search-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    border-bottom: 3px solid var(--border);
+    padding: 6px 0px 4px 8px;
+    color: var(--text);
+    font-size: 18px;
+    font-family: 'League Spartan';
+    font-weight: 600;
+}
+.search-input::placeholder {
+    color: #bbbac0;
+    opacity: 0.9;
+}
+.search-ico {
+    position: absolute;
+    right: 6px;
+    top: 42%;
+    transform: translateY(-50%);
+    width: 22px;
+    height: auto;
+    pointer-events: none;
+}
+
+/* YEAR HEADER variant keeps same layout */
+.calendar-header--year .nav,
+.calendar-header--year .btn-caret {
+    display: none;
+}
+
+/* ---------- body ---------- */
+.calendar-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+.calendar-body .calendar-month,
+.calendar-body .calendar-year,
+.calendar-body .calendar-week .week-grid {
+    height: 100%;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+}
+
+/* Chrome/Edge/Safari */
+.week-grid::-webkit-scrollbar,
+.calendar-month::-webkit-scrollbar,
+.calendar-year::-webkit-scrollbar {
+    width: var(--scroll-size);
+    height: var(--scroll-size);
+}
+.week-grid:hover::-webkit-scrollbar,
+.calendar-month::-webkit-scrollbar-track,
+.calendar-year::-webkit-scrollbar-track {
+    width: calc(var(--scroll-size) + 2px); /* чуть шире при ховере */
+}
+.week-grid::-webkit-scrollbar-track,
+.calendar-month::-webkit-scrollbar-track,
+.calendar-year::-webkit-scrollbar-track {
+    background: var(--scroll-track);
+}
+.week-grid::-webkit-scrollbar-thumb,
+.calendar-month::-webkit-scrollbar-thumb,
+.calendar-year::-webkit-scrollbar-thumb {
+    background: var(--scroll-thumb);
+    border-radius: 999px; /* «пилюля» */
+    border: 2px solid transparent; /* зазор внутри */
+    background-clip: padding-box; /* чтобы был «кантик» */
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+    min-height: 32px;
+}
+.week-grid::-webkit-scrollbar-thumb:hover,
+.calendar-month::-webkit-scrollbar-thumb:hover,
+.calendar-year::-webkit-scrollbar-thumb:hover {
+    background: var(--scroll-thumb-hover);
+}
+
+/*  */
+/*  */
+/*  */
+/* ---------- filter popover ---------- */
+/* === Filter popover (как на макете) === */
+.filter-popover {
+    position: absolute;
+    left: 16px;
+    top: 56px;
+    z-index: 6;
+    width: 300px;
+    background: var(--border);
+    border: 2px solid var(--bg-theme);
+    border-radius: 25px;
+    padding: 20px;
+    box-shadow: 17px 19px 22px rgba(12, 16, 32, 0.4);
+}
+.filter-popover.open {
+    display: block;
+}
+
+.filter-popover .section + .section {
+    margin-top: 14px;
+}
+.filter-popover .fp-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+.filter-popover .title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #96c0be;
+}
+
+/* segmented Year / Month / Week */
+.filter-popover .segmented {
+    display: flex;
+    gap: 5px;
+}
+.filter-popover .segmented button {
+    padding: 6px 14px;
+    border-radius: 9999px;
+    background: transparent;
+    border: 1px solid var(--arr-bg);
+    color: var(--text);
+    font-weight: 600;
+    cursor: pointer;
+}
+.filter-popover .segmented button:hover {
+    background: rgba(243, 196, 218, 0.12);
+}
+.filter-popover .segmented button.active {
+    background: var(--arr-bg);
+    color: #96c0be;
+    box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+}
+
+/* category tags */
+.filter-popover .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.filter-popover .tag-wrap {
+    display: inline-flex;
+}
+.filter-popover .tag-wrap input {
+    display: none;
+}
+
+.filter-popover .tag {
+    --br: #ffd3ec;
+    --dot: #ffd3ec;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    border-radius: 9999px;
+    border: 1.5px solid var(--br);
+    background: transparent;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text);
+}
+.filter-popover .tag::before {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--dot);
+}
+
+/* активное состояние чекбокса */
+.filter-popover .tag-wrap input:checked + .tag {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+    color: var(--text-theme);
+}
+
+/* Clear */
+.filter-popover .link {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #96c0be;
+    font-weight: 600;
+    padding: 6px 8px;
+    border-radius: 8px;
+}
+.filter-popover .link:hover {
+    text-decoration: underline;
+}
+
+/* ---------- Access popover ---------- */
+.access-popover {
+    width: 420px;
+    background: var(--border);
+    border: 2px solid var(--bg-theme);
+    border-radius: 25px;
+    padding: 14px 14px 10px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+    z-index: 25;
+}
+
+/* внутренние элементы панели (класс .ap у корня) */
+.ap .ap-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #96c0be;
+    margin: 10px 6px 0;
+}
+.ap .ap-invite {
+    position: relative;
+    margin: 8px 4px 2px;
+}
+.ap .ap-input {
+    width: 345px;
+    height: 40px;
+    padding: 0 48px 0 14px;
+    border-radius: 9999px;
+    outline: none;
+    background: transparent;
+    color: var(--text);
+    font-weight: 600;
+    border: 2px solid var(--arr-bg);
+}
+.ap .ap-input::placeholder {
+    color: #bbbac0;
+    opacity: 0.9;
+}
+.ap .ap-send {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    border-radius: 9999px;
+    border: none;
+    background: #ffd3ec;
+    color: #222;
+    font-size: 18px;
+    font-weight: 900;
+    cursor: pointer;
+}
+.ap .ap-send img {
+    width: 18px; /* аккуратный размер стрелки */
+    height: 18px;
+    display: block;
+    margin: 0 auto;
+    pointer-events: none;
+}
+.ap .ap-send:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+.ap .ap-send:hover:not(:disabled) {
+    box-shadow: 0 0 0 2px rgba(255, 211, 236, 0.35) inset;
+}
+
+/* список */
+
+.ap .ap-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 6px;
+    border-radius: 12px;
+}
+.ap .ap-row + .ap-row {
+    margin-top: 2px;
+}
+.ap .ap-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+.ap .ap-ava {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    border-radius: 50%;
+    background: #1f2937;
+    color: #fff;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.ap .ap-name {
+    font-weight: 600;
+    color: var(--text-theme);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* роли */
+.ap .ap-role {
+    position: relative;
+}
+.ap .ap-badge.mute {
+    color: var(--text);
+    font-weight: 700;
+}
+.ap .ap-select-btn {
+    font-family: 'League Spartan';
+    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 10px;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    font-weight: 700;
+}
+.ap .caret {
+    opacity: 0.8;
+}
+
+/* меню ролей */
+.ap .ap-menu {
+    position: absolute;
+    right: 0;
+    top: 110%;
+    min-width: 150px;
+    background: var(--border);
+    border: 2px solid var(--bg-theme);
+    border-radius: 20px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+    padding: 6px;
+    z-index: 2;
+}
+.ap .ap-menu-item {
+    width: 100%;
+    text-align: left;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: transparent;
+    border: none;
+    color: var(--text-theme);
+    font-weight: 600;
+    cursor: pointer;
+}
+.ap .ap-menu-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+.ap .ap-menu-item.danger {
+    color: #fda4af;
+}
+
+/* ==========================================================================
+   WEEK VIEW
+   ========================================================================== */
+.calendar-week {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* sticky header of weekdays (under main header) */
+.week-header {
+    padding-top: 10px;
+    display: grid;
+    grid-template-columns: 65px repeat(7, 1fr);
+    background: var(--bg);
+    position: sticky;
+    z-index: 2;
+}
+.time-header {
+    height: 38px;
+}
+.day-header {
+    height: 38px;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-weight: 600;
+    justify-content: end;
+}
+.day-header .dow {
+    font-size: 18px;
+    color: var(--text);
+    width: 36px;
+}
+.day-header .date {
+    font-size: 18px;
+    color: var(--text);
+    padding: 3px 8px;
+    line-height: 1;
+}
+
+/* WEEK VIEW base */
+.week-grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    background: var(--bg); /* было debug-красным */
+    display: grid;
+    grid-template-columns: 70px repeat(7, 1fr);
+    gap: 0;
+
+    scrollbar-gutter: stable;
+    overscroll-behavior: contain;
+}
+
+/* левая колонка времени */
+.time-col {
+    display: grid;
+    grid-template-rows: repeat(48, var(--slot-h));
+    position: sticky;
+    left: 0;
+    z-index: 1;
+}
+
+.time-col .hour {
+    grid-column: 1;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    padding-left: 8px;
+    display: flex;
+    align-items: start;
+    justify-content: center;
+}
+
+/* столбец дня: сетка по 30 мин */
+.day-col {
+    position: relative;
+    display: grid;
+    grid-template-rows: repeat(48, var(--slot-h));
+    padding: 0; /* важно для ровных капсул */
+}
+
+/* КАПСУЛЫ (пустые слоты) */
+.day-col .slot {
+    margin: 3px; /* зазор как на макете */
+    border-radius: 12px; /* форма капсулы */
+    background: var(--bg-theme); /* заполнитель слота */
+    cursor: pointer;
+}
+.day-col .slot:hover {
+    background: var(--hover-theme);
+}
+/* события поверх слотов */
+.day-col .event {
+    margin: 3px 6px; /* подпадает в ту же «дорожку» */
+    border-radius: 12px;
+    padding: 6px 8px;
+    background: #e9d5ff;
+    border: 1px solid #e2c7ff;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    box-shadow: var(--shadow-card);
+    z-index: 2; /* поверх .slot */
+}
+.day-col .event.reminder {
+    background: var(--rem-bg);
+    border-color: var(--rem-br);
+}
+.day-col .event.task {
+    background: var(--task-bg);
+    border-color: var(--task-br);
+}
+.day-col .event.arrangement {
+    background: var(--arr-bg);
+    border-color: var(--arr-br);
+}
+
+/* ==========================================================================
+   MONTH VIEW
+   ========================================================================== */
+
+.calendar-month {
+    overflow-y: auto;
+    padding: 0 12px;
+    background: var(--bg);
+}
+
+/* единая шапка Mon..Sun */
+.month-weekdays {
+    position: sticky;
+    top: 0; /* прилипает под навигацией */
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 20px;
+    padding: 10px 12px 6px;
+    background: var(--bg);
+    z-index: 2;
+}
+.month-weekdays .wd {
+    font-size: 18px;
+    font-weight: 600;
+    text-align: right;
+}
+.month-block + .month-block {
+    margin-top: 24px;
+}
+
+.month-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: 132px;
+    gap: 10px;
+}
+
+.month-cell {
+    position: relative;
+    background: var(--bg-theme);
+    border-radius: 12px;
+    padding: 6px;
+    cursor: pointer;
+}
+.month-cell:hover {
+    background: var(--hover-theme);
+}
+
+/* Паддинговые ячейки (дни не из текущего месяца) */
+.month-cell.pad {
+    background: var(--hover-theme);
+    opacity: 0.3;
+    pointer-events: none; /* чтобы не ловили двойной клик */
+}
+.month-cell.pad .cell-date {
+    visibility: hidden;
+}
+.month-cell.pad .cell-events {
+    display: none;
+}
+
+.cell-date {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    color: var(--text);
+    font-weight: 600;
+    padding: 10px;
+    font-size: 18px;
+}
+/* числа именно активного (текущего в хедере) месяца */
+.month-block.is-active .cell-date.cur {
+    color: var(--text-theme); /* светлый текст из темы */
+    font-weight: 700;
+    opacity: 1;
+}
+
+.cell-date.today {
+    /* перекрываем базовые отступы, чтобы сделать круг */
+    padding: 0;
+    width: 28px;
+    height: 28px;
+    right: 10px; /* как у тебя в .cell-date */
+    top: 8px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: #96c0be;
+    color: #000000;
+    border-radius: 50%;
+}
+
+/* events */
+
+.cell-events {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 20px;
+}
+.pill {
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 9999px;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    background: #e9d5ff;
+    border: 1px solid #e2c7ff;
+}
+.pill.reminder {
+    background: var(--rem-bg);
+    border-color: var(--rem-br);
+}
+.pill.task {
+    background: var(--task-bg);
+    border-color: var(--task-br);
+}
+.pill.arrangement {
+    background: var(--arr-bg);
+    border-color: var(--arr-br);
+}
+.more {
+    font-size: 12px;
+    color: #64748b;
+}
+
+/* ==========================================================================
+   YEAR VIEW
+   ========================================================================== */
+.calendar-year {
+    overflow-y: auto;
+    padding: 12px;
+    background: var(--bg);
+}
+
+/* Year view rows: 4 колонки, аккуратные зазоры */
+.year-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.year-cell {
+    padding: 60px 0px;
+    border: none;
+    border-radius: 16px;
+    background: var(--bg-theme);
+    color: var(--text-theme);
+    font-size: 45px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    font-family: 'League Spartan', sans-serif;
+}
+.year-cell:hover {
+    background: var(--hover-theme);
+}
+.year-cell.active {
+    background: #ffd6ea;
+    border-color: #ffd6ea;
+}
+
+/* ==========================================================================
+   Misc
+   ========================================================================== */
+
+/* ===== Week picker popover ===== */
+
+.weekpicker-popover {
+    position: absolute;
+    z-index: 30;
+    top: 48px;
+    left: 12px;
+    width: 320px;
+    background: var(--border);
+    border: 2px solid var(--bg-theme);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+    padding: 10px 10px 12px;
+    display: none;
+}
+.weekpicker-popover.open {
+    display: block;
+}
+
+.weekpicker-head {
+    display: grid;
+    grid-template-columns: 32px 1fr 32px;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+.weekpicker-head .label {
+    text-align: center;
+    font-weight: 600;
+}
+.weekpicker-head .icon {
+    height: 32px;
+    width: 32px;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--p-text);
+    border: none;
+    cursor: pointer;
+}
+
+.weekpicker-dow,
+.weekpicker-weeks {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+}
+.weekpicker-dow {
+    gap: 4px;
+    margin: 4px 0 6px;
+}
+.weekpicker-dow .dow {
+    text-align: center;
+    font-size: 12px;
+    color: var(--p-muted);
+}
+
+.week-row {
+    display: contents;
+}
+.week-row.selected .cell.in {
+    background: rgba(150, 192, 190, 0.3);
+    box-shadow: inset 0 0 0 1px rgba(150, 192, 190, 0.6);
+}
+.weekpicker-weeks .cell {
+    height: 36px;
+    margin: 2px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    cursor: pointer;
+    transition: transform 0.06s ease;
+}
+.weekpicker-weeks .cell:hover {
+    transform: scale(1.02);
+}
+.weekpicker-weeks .cell.out {
+    opacity: 0.35;
+}
+.weekpicker-weeks .dd {
+    font-size: 13px;
+}
+
+.calendar-header .left {
+    position: relative;
+}
+.icon.caret {
+    margin-left: 6px;
+}

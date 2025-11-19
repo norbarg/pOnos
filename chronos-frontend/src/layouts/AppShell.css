@@ -13,13 +13,10 @@ body {
     grid-template-columns: 90px 1fr; /* фиксированная ширина сайдбара */
     height: 100vh; /* вся страница = высота вьюпорта */
     overflow: hidden; /* никакого общего скролла */
-    background: #0f1220;
-    color: #e8e8f0;
 }
 .app-content {
     z-index: 1;
     position: relative;
     height: 100%;
     overflow: auto; /* скролл только контента */
-    padding: 16px;
 }

@@ -104,7 +104,7 @@ export async function createCalendar(req, res) {
 
         const cal = await Calendar.create({
             name: String(name).trim(),
-            color: color || '#3b82f6',
+            color: color || '#151726',
             description: description?.trim() || undefined,
             owner: uid,
             members: [],
