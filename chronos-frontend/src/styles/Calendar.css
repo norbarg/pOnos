@@ -47,7 +47,7 @@
     overflow-x: hidden;
 }
 .calendar-appbar {
-    padding: 7px 42px 7px;
+    padding: 7px 60px 7px;
     border-bottom: 2px solid var(--border);
     position: relative;
     background: #2c2d4c;

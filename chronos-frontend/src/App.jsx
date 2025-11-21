@@ -11,6 +11,7 @@ import AppShell from './layouts/AppShell';
 import Calendars from './pages/Calendars';
 import EventPage from './pages/EventPage';
 import Profile from './pages/Profile';
+import AcceptInvite from './pages/AcceptInvite.jsx';
 
 export default function App() {
     return (
@@ -45,6 +46,7 @@ export default function App() {
 
             {/* fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="/invite/accept" element={<AcceptInvite />} />
         </Routes>
     );
 }

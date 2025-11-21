@@ -1,9 +1,10 @@
+// invite.service.js
 import crypto from 'crypto';
 import Invitation from '../models/Invitation.js';
 import Calendar from '../models/Calendar.js';
 import { sendInviteEmail } from './mail.service.js';
 
-const APP_URL = process.env.APP_URL || 'http://localhost:3000';
+const APP_URL = process.env.APP_URL || 'http://localhost:5173';
 const INVITE_TTL_DAYS = Number(process.env.INVITE_TTL_DAYS || 7);
 
 function buildAcceptLink(token) {

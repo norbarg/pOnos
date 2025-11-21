@@ -1,5 +1,12 @@
 // File: src/pages/Calendars.jsx
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    useCallback,
+} from 'react';
+import { useLocation } from 'react-router-dom';
 import WeekView from '../components/Calendar/WeekView';
 import MonthView from '../components/Calendar/MonthView';
 import YearView from '../components/Calendar/YearView';
@@ -295,6 +302,18 @@ function FilterPopover({
 }
 
 export default function CalendarsPage() {
+    const location = useLocation();
+    const preselectCalId = useMemo(() => {
+        const viaState = location.state?.calId;
+        const viaQuery = (() => {
+            try {
+                return new URLSearchParams(location.search).get('cal');
+            } catch {
+                return null;
+            }
+        })();
+        return viaState || viaQuery || null;
+    }, [location.state, location.search]);
     const resetOnEnter = (() => {
         try {
             const v = sessionStorage.getItem(SS_RESET);
@@ -350,6 +369,31 @@ export default function CalendarsPage() {
     const [accessOpen, setAccessOpen] = useState(false);
     const accessPopRef = useRef(null);
     const [accessPos, setAccessPos] = useState({ top: 56, left: 0 }); // для позиционирования
+
+    const loadMembers = useCallback(async () => {
+        if (!mainCal) return;
+        try {
+            const { data } = await api.get(`/calendars/${mainCal.id}/members`);
+            const list = [data.owner, ...(data.members || [])]
+                .filter(Boolean)
+                .map((x) => ({
+                    id: x.id,
+                    email: x.email,
+                    name: x.name,
+                    // нормализуем в permission: 'owner' | 'edit' | 'view'
+                    permission:
+                        x.role === 'owner'
+                            ? 'owner'
+                            : x.role === 'editor'
+                            ? 'edit'
+                            : 'view',
+                    role: x.role, // держим и исходный role для совместимости
+                }));
+            setSharedWith(list);
+        } catch (e) {
+            console.warn('load members failed', e?.message);
+        }
+    }, [mainCal]);
 
     const normalizeCategory = (c) => ({
         id: c.id ?? c._id,
@@ -412,7 +456,12 @@ export default function CalendarsPage() {
             try {
                 const { data } = await api.get('/calendars');
                 const cals = data?.calendars || [];
-                const main = cals.find((c) => c.isMain) || cals[0];
+                const byId = (x) =>
+                    String(x.id ?? x._id) === String(preselectCalId);
+                const main =
+                    (preselectCalId && cals.find(byId)) ||
+                    cals.find((c) => c.isMain) ||
+                    cals[0];
                 const hol = cals.find(
                     (c) => c.isSystem && c.systemType === 'holidays'
                 );
@@ -422,7 +471,7 @@ export default function CalendarsPage() {
                 console.warn('load calendars failed', e?.message);
             }
         })();
-    }, []);
+    }, [preselectCalId]);
 
     useEffect(() => {
         if (!mainCal) return;
@@ -448,7 +497,16 @@ export default function CalendarsPage() {
             localStorage.setItem(LS_VIEW, viewMode);
         } catch {}
     }, [viewMode]);
-
+    useEffect(() => {
+        const prev = document.title;
+        const title = mainCal?.name
+            ? `${mainCal.name} — Timely`
+            : 'Calendar — Timely';
+        document.title = title;
+        return () => {
+            document.title = prev;
+        };
+    }, [mainCal?.name]);
     useEffect(() => {
         try {
             localStorage.setItem(LS_DATE, currentDate.toISOString());
@@ -490,32 +548,9 @@ export default function CalendarsPage() {
     }
 
     useEffect(() => {
-        (async () => {
-            if (accessOpen && mainCal) {
-                try {
-                    const { data } = await api.get(
-                        `/calendars/${mainCal.id}/members`
-                    );
-                    const list = [data.owner, ...(data.members || [])]
-                        .filter(Boolean)
-                        .map((x) => ({
-                            id: x.id,
-                            email: x.email,
-                            name: x.name,
-                            permission:
-                                x.role === 'owner'
-                                    ? 'owner'
-                                    : x.role === 'editor'
-                                    ? 'edit'
-                                    : 'view',
-                        }));
-                    setSharedWith(list);
-                } catch (e) {
-                    console.warn('load members failed', e?.message);
-                }
-            }
-        })();
-    }, [accessOpen, mainCal]);
+        if (accessOpen) loadMembers();
+    }, [accessOpen, loadMembers]);
+
     useEffect(() => {
         if (!accessOpen) return;
         const btn = gearBtnRef.current;
@@ -581,24 +616,44 @@ export default function CalendarsPage() {
 
     async function inviteUser(email, perm) {
         if (!mainCal) return;
-        await api.post(`/calendars/${mainCal.id}/share`, {
+        const { data } = await api.post(`/calendars/${mainCal.id}/share`, {
             email,
-            permission: perm,
+            role: perm === 'edit' ? 'editor' : 'member',
         });
+        // тепер members не зміняться до accept → можна не перезавантажувати
+        return data; // щоб AccessPanel міг показати “sent/alreadyInvited”
     }
     async function changePermission(userId, perm) {
         if (!mainCal) return;
-        await api.patch(`/calendars/${mainCal.id}/members/${userId}`, {
-            role: perm === 'edit' ? 'editor' : 'member',
-        });
+        const targetId = String(userId);
+        const nextRole = perm === 'edit' ? 'editor' : 'member';
+        // оптимистичное обновление
         setSharedWith((prev) =>
-            prev.map((u) => (u.id === userId ? { ...u, permission: perm } : u))
+            prev.map((u) =>
+                String(u.id) === targetId
+                    ? { ...u, permission: perm, role: nextRole }
+                    : u
+            )
         );
+        try {
+            await api.patch(`/calendars/${mainCal.id}/members/${targetId}`, {
+                role: nextRole,
+            });
+            // гарантируем консистентность с сервером
+            await loadMembers();
+        } catch (e) {
+            console.error(
+                'changePermission error:',
+                e?.response?.data || e.message
+            );
+            // откат к серверному состоянию
+            await loadMembers();
+        }
     }
     async function removeAccess(userId) {
         if (!mainCal) return;
         await api.delete(`/calendars/${mainCal.id}/members/${userId}`);
-        setSharedWith((prev) => prev.filter((u) => u.id !== userId));
+        await loadMembers();
     }
 
     const visibleEvents = useMemo(() => {
@@ -618,13 +673,18 @@ export default function CalendarsPage() {
     const isSame = (a, b) =>
         a.length === b.length && a.every((x) => b.includes(x));
     const filterApplied = !isSame(categories, ALL_SLUGS);
-
+    const calTitle = mainCal?.name;
     return (
         <div className="calendar-container">
             {/* App bar */}
             <div className="calendar-appbar">
                 <div className="brand">
-                    <span className="brand__name">Calendar</span>
+                    <span
+                        className="brand__name"
+                        title={calTitle} // подсказка при hover
+                    >
+                        {calTitle}
+                    </span>
                     <img className="brand__logo" src={appIcon} alt="app" />
                 </div>
             </div>

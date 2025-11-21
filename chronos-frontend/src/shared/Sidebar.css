@@ -147,3 +147,62 @@ html[data-theme='light'] {
     transform: translateY(-1px) scale(1.06);
     filter: var(--icon-hover-filter);
 }
+@media (max-width: 820px) {
+    /* сам контейнер панели: теперь внизу, на всю ширину */
+    .side {
+        position: static; /* больше не sticky */
+        width: 100%;
+        height: var(--bottom-h);
+        border-right: none;
+        border-top: 1px solid var(--side-border);
+        background: var(--side-bg);
+    }
+
+    /* один общий грид-ряд: каждая иконка в колонке 1fr */
+    .side__inner {
+        height: 100%;
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: 1fr; /* ровно равные «слоты» под каждую иконку */
+        align-items: center;
+        justify-items: center; /* иконки центрированы в своих слотах */
+        column-gap: 0;
+        padding: 0 12px;
+    }
+
+    /* «расплющиваем» контейнеры, чтобы дети стали соседями в одном ряду */
+    .side__nav,
+    .side__bottom {
+        display: contents;
+    }
+
+    /* на всякий случай убираем наследованный 100% ширины у ссылок на мобилках */
+    .side__link,
+    .side__tool {
+        width: auto !important;
+        height: auto;
+        min-width: 0;
+        padding: 6px 8px;
+    }
+
+    /* скрываем вертикальный ползунок */
+    .side__slider {
+        display: none;
+    }
+
+    .side__icon {
+        height: 50px;
+    }
+    .side__icon--avatar {
+        width: 50px;
+        height: 50px;
+    }
+    .side__iconAvatarFallback {
+        width: 50px;
+        height: 50px;
+        font-size: 16px;
+    }
+    .side__toolIcon {
+        height: 50px;
+    }
+}

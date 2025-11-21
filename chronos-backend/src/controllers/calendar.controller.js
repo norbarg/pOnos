@@ -212,20 +212,43 @@ export async function shareCalendar(req, res) {
         email = String(email).trim().toLowerCase();
         role = role === 'editor' ? 'editor' : 'member';
 
-        const user = await User.findOne({ email }).lean();
+        // заборонити self-invite
+        const inviter = await User.findById(uid).lean();
+        if (inviter?.email?.toLowerCase() === email) {
+            return res.status(400).json({ error: 'cannot-invite-yourself' });
+        }
 
-        if (user) {
-            const uId = user._id.toString();
-            const update = { $addToSet: { members: ObjectId(uId) } };
-            const set = {};
-            set[`memberRoles.${uId}`] = role;
-            set[`notifyActive.${uId}`] = true;
-            update.$set = set;
+        // якщо юзер існує і вже має доступ — не дублюємо
+        const existingUser = await User.findOne({ email }).lean();
+        if (existingUser) {
+            const uId = existingUser._id.toString();
+            const already =
+                cal.owner?.toString() === uId ||
+                (Array.isArray(cal.members) &&
+                    cal.members.some((m) => String(m) === uId));
+            if (already) {
+                return res.status(409).json({ error: 'already-member' });
+            }
+        }
 
-            const updated = await Calendar.findByIdAndUpdate(cal._id, update, {
-                new: true,
+        // якщо pending-інвайт уже є — повернемо його
+        const pending = await Invitation.findOne({
+            calendar: cal._id,
+            email,
+            status: 'pending',
+        }).lean();
+        if (pending) {
+            return res.json({
+                invitation: {
+                    id: String(pending._id),
+                    email: pending.email,
+                    role: pending.role,
+                    status: pending.status,
+                    expiresAt: pending.expiresAt,
+                },
+                calendar: toCalendarResponse(cal, uid),
+                alreadyInvited: true,
             });
-            return res.json({ calendar: toCalendarResponse(updated, uid) });
         }
 
         const inv = await createInvite({
@@ -239,12 +262,13 @@ export async function shareCalendar(req, res) {
         return res.json({
             calendar: toCalendarResponse(fresh, uid),
             invitation: {
-                id: inv._id.toString(),
+                id: String(inv._id),
                 email: inv.email,
                 role: inv.role,
                 status: inv.status,
                 expiresAt: inv.expiresAt,
             },
+            sent: true,
         });
     } catch (err) {
         if (err?.code === 'system-calendar-immutable') {

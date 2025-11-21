@@ -1,3 +1,4 @@
+// chronos-frontend/src/components/Calendar/AccessPanel.jsx
 import React, { useState } from 'react';
 
 export default function AccessPanel({
@@ -13,7 +14,19 @@ export default function AccessPanel({
     const sendInvite = async () => {
         const v = inviteEmail.trim();
         if (!v) return;
-        await onInvite?.(v, 'view'); // по макету без выбора — зовем с правом view
+        try {
+            const r = await onInvite?.(v, 'view');
+            if (r?.alreadyInvited)
+                alert('Invite already pending for this email.');
+            else alert('Invite sent.');
+        } catch (e) {
+            const msg = e?.response?.data?.error || e.message;
+            if (msg === 'already-member')
+                alert('This user already has access.');
+            else if (msg === 'cannot-invite-yourself')
+                alert('You cannot invite yourself.');
+            else alert('Failed: ' + msg);
+        }
         setInviteEmail('');
     };
 
@@ -98,7 +111,7 @@ export default function AccessPanel({
                                                     className="ap-menu-item"
                                                     onClick={() => {
                                                         onChangePermission?.(
-                                                            u.id,
+                                                            String(u.id),
                                                             'view'
                                                         );
                                                         setMenuFor(null);
@@ -110,7 +123,7 @@ export default function AccessPanel({
                                                     className="ap-menu-item"
                                                     onClick={() => {
                                                         onChangePermission?.(
-                                                            u.id,
+                                                            String(u.id),
                                                             'edit'
                                                         );
                                                         setMenuFor(null);
@@ -121,7 +134,9 @@ export default function AccessPanel({
                                                 <button
                                                     className="ap-menu-item danger"
                                                     onClick={() => {
-                                                        onRemove?.(u.id);
+                                                        onRemove?.(
+                                                            String(u.id)
+                                                        );
                                                         setMenuFor(null);
                                                     }}
                                                 >

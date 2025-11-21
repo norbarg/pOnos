@@ -8,7 +8,7 @@ import Invitation from '../models/Invitation.js';
 import EventInvitation from '../models/EventInvitation.js';
 import { AVATARS_PUBLIC_BASE } from '../middlewares/uploadAvatar.middleware.js';
 
-function isValidUsername(v) {
+function isValidLogin(v) {
     return /^[a-z0-9._-]{3,32}$/.test(String(v || ''));
 }
 
@@ -22,26 +22,29 @@ export async function updateMe(req, res) {
 
     // username из JSON-тела (если передан)
     let usernamePatch;
-    if (Object.prototype.hasOwnProperty.call(req.body, 'username')) {
-        const u = String(req.body.username || '')
+    // логин из тела: поддерживаем оба ключа, но пишем в поле name
+    let namePatch;
+    if ('name' in req.body || 'username' in req.body) {
+        const raw = String(
+            ('name' in req.body ? req.body.name : req.body.username) || ''
+        )
             .trim()
             .toLowerCase();
-        if (u && !isValidUsername(u)) {
+        if (raw && !isValidLogin(raw)) {
             return res.status(400).json({ error: 'username-invalid' });
         }
-        if (u) {
+        if (raw) {
             const exists = await User.findOne({
                 _id: { $ne: uid },
-                username: u,
+                name: raw,
             }).lean();
             if (exists)
                 return res
                     .status(409)
                     .json({ error: 'username already in use' });
         }
-        usernamePatch = u || undefined;
+        namePatch = raw || undefined;
     }
-
     // если пришёл файл
     let avatarPublicPath;
     if (req.file) {
@@ -54,7 +57,7 @@ export async function updateMe(req, res) {
 
     // собрать патч
     const patch = {};
-    if (typeof usernamePatch !== 'undefined') patch.username = usernamePatch;
+    if (typeof namePatch !== 'undefined') patch.name = namePatch;
     if (avatarPublicPath) patch.avatar = avatarPublicPath;
 
     const updated = await User.findByIdAndUpdate(uid, patch, {
