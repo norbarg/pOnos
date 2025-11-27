@@ -565,10 +565,38 @@ export default function Profile() {
                                                                         bg,
                                                                     borderColor:
                                                                         bd,
+                                                                    cursor: 'pointer',
                                                                 }}
                                                                 title={fmtEventWhen(
                                                                     ev.start
                                                                 )}
+                                                                onClick={(
+                                                                    e
+                                                                ) => {
+                                                                    e.stopPropagation();
+                                                                    try {
+                                                                        // чтобы календарь понял, что его просят пересобраться
+                                                                        sessionStorage.setItem(
+                                                                            CAL_RESET_FLAG,
+                                                                            '1'
+                                                                        );
+                                                                    } catch {}
+
+                                                                    navigate(
+                                                                        '/calendars',
+                                                                        {
+                                                                            state: {
+                                                                                calId: cal.id, // какой календарь открыть
+                                                                                focusDate:
+                                                                                    ev.start, // на какую дату прыгнуть
+                                                                                focusEventId:
+                                                                                    ev.id ||
+                                                                                    ev._id, // на всякий случай, если пригодится
+                                                                                view: 'week', // сразу включить недельный вид
+                                                                            },
+                                                                        }
+                                                                    );
+                                                                }}
                                                             >
                                                                 {icon && (
                                                                     <img

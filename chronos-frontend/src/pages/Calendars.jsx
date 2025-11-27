@@ -27,6 +27,14 @@ const LS_DATE = 'calendar:currentDate';
 const SS_RESET = 'calendar:_reset_on_enter';
 
 /** utils */
+function slugify(s) {
+    return String(s || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '');
+}
+
 function startOfWeek(d) {
     const x = new Date(d);
     const day = (x.getDay() + 6) % 7;
@@ -397,16 +405,33 @@ export default function CalendarsPage() {
 
     const normalizeCategory = (c) => ({
         id: c.id ?? c._id,
-        slug:
-            c.slug ??
-            (c.name || c.title || 'category')
-                .toLowerCase()
-                .replace(/\s+/g, '-')
-                .replace(/[^a-z0-9-]/g, ''),
+        slug: c.slug ?? slugify(c.name || c.title || 'category'),
         name: c.name ?? c.title ?? c.slug ?? 'Category',
         color: c.color ?? c.hex ?? '#e9d5ff',
     });
-    // NEW: фетчимо категорії
+
+    // если пришли с профиля (navigate('/calendars', { state: { ... } }))
+    useEffect(() => {
+        const st = location.state;
+        if (!st) return;
+
+        // 1) если передали дату события — ставим её как currentDate
+        if (st.focusDate) {
+            const d = new Date(st.focusDate);
+            if (!Number.isNaN(d.getTime())) {
+                setCurrentDate(d);
+            }
+        }
+
+        // 2) если явно передали режим (week/month/year) — применяем
+        if (
+            st.view &&
+            (st.view === 'week' || st.view === 'month' || st.view === 'year')
+        ) {
+            setViewMode(st.view);
+        }
+    }, [location.state]);
+
     useEffect(() => {
         (async () => {
             try {
@@ -475,21 +500,21 @@ export default function CalendarsPage() {
 
     useEffect(() => {
         if (!mainCal) return;
+
         if (viewMode === 'week') {
-            const from = startOfWeek(currentDate),
-                to = addDays(from, 7);
-            loadRange(from, to, true);
+            const from = startOfWeek(currentDate);
+            const to = addDays(from, 7);
+            loadRange(from, to, false);
         }
+
         if (viewMode === 'month') {
-            const y = currentDate.getFullYear(),
-                m = currentDate.getMonth();
-            const key = `${y}-${String(m + 1).padStart(2, '0')}`;
-            if (!loadedMonthsRef.current.has(key)) {
-                loadedMonthsRef.current.add(key);
-                loadMonth(y, m);
-            }
+            const y = currentDate.getFullYear();
+            const m = currentDate.getMonth();
+
+            // ВАЖНО: всегда грузим видимый месяц,
+            // не смотрим тут на loadedMonthsRef
+            loadMonth(y, m);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mainCal, holidayCal, currentDate, viewMode]);
 
     useEffect(() => {
@@ -512,36 +537,68 @@ export default function CalendarsPage() {
             localStorage.setItem(LS_DATE, currentDate.toISOString());
         } catch {}
     }, [currentDate]);
+    function convEvent(ev, { isHoliday = false } = {}) {
+        let rawCatKey =
+            ev.categoryInfo?.builtInKey ||
+            ev.categoryInfo?.key ||
+            ev.categoryInfo?.title ||
+            ev.categoryKey ||
+            ev.categorySlug ||
+            ev.category?.slug ||
+            ev.category ||
+            '';
+
+        if (/^[0-9a-fA-F]{24}$/.test(rawCatKey)) rawCatKey = '';
+
+        let cat = slugify(rawCatKey);
+        if (!cat) cat = 'arrangement';
+
+        const color = ev.categoryInfo?.color || ev.category?.color || ev.color;
+
+        return {
+            ...ev,
+            id: ev.id || ev._id,
+            start: new Date(ev.start),
+            end: new Date(ev.end),
+            category: cat,
+            color, // ← ← ← ДОБАВЛЕНО!
+            isHoliday,
+        };
+    }
 
     async function loadRange(from, to, replace = false) {
+        if (!mainCal) return; // ← добавь это
         try {
+            const params = {
+                from: fmtISO(from),
+                to: fmtISO(to),
+                expand: 1,
+            };
+
             const [a, b] = await Promise.all([
-                api.get(`/calendars/${mainCal.id}/events`, {
-                    params: { from: fmtISO(from), to: fmtISO(to) },
-                }),
+                api.get(`/calendars/${mainCal.id}/events`, { params }),
                 holidayCal
-                    ? api.get(`/calendars/${holidayCal.id}/events`, {
-                          params: { from: fmtISO(from), to: fmtISO(to) },
-                      })
+                    ? api.get(`/calendars/${holidayCal.id}/events`, { params })
                     : Promise.resolve({ data: { events: [] } }),
             ]);
-            const conv = (ev) => ({
-                ...ev,
-                id: ev.id || ev._id,
-                start: new Date(ev.start),
-                end: new Date(ev.end),
-                category: ev.category?.slug || ev.category || 'arrangement',
-            });
-            const merged = mergeEvents(
-                a.data?.events?.map(conv) || [],
-                b.data?.events?.map(conv) || []
+
+            const mainEvents = (a.data?.events || []).map((ev) =>
+                convEvent(ev, { isHoliday: false })
             );
+            const holidayEvents = (b.data?.events || []).map((ev) =>
+                convEvent(ev, { isHoliday: true })
+            );
+
+            const merged = mergeEvents(mainEvents, holidayEvents);
+
             setEvents((prev) => (replace ? merged : mergeEvents(prev, merged)));
         } catch (e) {
             console.error('loadRange error', e?.message);
         }
     }
+
     async function loadMonth(year, month) {
+        if (!mainCal) return; // ← и здесь тоже
         const from = monthFirstDay(year, month),
             to = addDays(monthLastDay(year, month), 1);
         await loadRange(from, to, false);
@@ -658,12 +715,38 @@ export default function CalendarsPage() {
 
     const visibleEvents = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();
+        const hasCatFilter = Array.isArray(categories) && categories.length > 0;
+        const catsSet = new Set(categories || []);
+
         return events.filter((e) => {
-            const catOK = categories.includes(e.category) || e.isHoliday;
-            const text = (e.title || '') + ' ' + (e.description || '');
-            return catOK && (!q || text.toLowerCase().includes(q));
+            const text = (
+                (e.title || '') +
+                ' ' +
+                (e.description || '')
+            ).toLowerCase();
+
+            // на всякий случай ещё раз нормализуем категорию
+            const evSlug = slugify(
+                e.category ||
+                    e.categoryInfo?.builtInKey ||
+                    e.categoryInfo?.title
+            );
+
+            const catOK =
+                !hasCatFilter || // нет выбранных → показываем всё
+                catsSet.has(evSlug) || // slug совпал
+                e.isHoliday; // праздники пропускаем всегда
+
+            return catOK && (!q || text.includes(q));
         });
     }, [events, searchQuery, categories]);
+
+    // Просто дебаг: что реально прилетает и что в итоге видно
+    useEffect(() => {
+        console.log('RAW events from API:', events);
+        console.log('visibleEvents after filters:', visibleEvents);
+        console.log('category filters:', categories);
+    }, [events, visibleEvents, categories]);
 
     const weekStart = startOfWeek(currentDate);
     const DEFAULT_CATS = ['arrangement', 'reminder', 'task'];

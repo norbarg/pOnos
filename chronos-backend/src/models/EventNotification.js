@@ -1,8 +1,9 @@
+// models/EventNotification.js
 import mongoose from 'mongoose';
 const { Schema, model, Types } = mongoose;
 
 /** Фиксируем, что мы уже отправили уведомление user'у
- * по конкретному событию/оккурансу и виду (before15|start).
+ * по конкретному событию/оккурансу и виду (before15|start|end).
  * Уникальный ключ защищает от дублей даже при перезапусках.
  */
 const eventNotificationSchema = new Schema(
@@ -22,7 +23,7 @@ const eventNotificationSchema = new Schema(
         },
         kind: {
             type: String,
-            enum: ['before15', 'start'],
+            enum: ['before15', 'start', 'end'], // ← ДОБАВИЛИ 'end'
             required: true,
             index: true,
         },

@@ -107,6 +107,7 @@ export async function sendEventInviteEmail({ to, eventTitle, when, link }) {
     return sendMail({ to, subject, text, html });
 }
 // === Письма-напоминания по событиям ===
+// === Письма-напоминания по событиям ===
 export async function sendEventReminderEmail({
     to,
     eventTitle,
@@ -115,18 +116,36 @@ export async function sendEventReminderEmail({
     minutes = 15,
     link,
 }) {
-    const subj =
-        kind === 'before15'
-            ? `Reminder: "${eventTitle}" starts in ${minutes} min`
-            : `Now: "${eventTitle}" is starting`;
-    const text =
-        kind === 'before15'
-            ? `Event "${eventTitle}" starts in ${minutes} minutes. When: ${when}. Open: ${link}`
-            : `Event "${eventTitle}" is starting now. When: ${when}. Open: ${link}`;
-    const html =
-        kind === 'before15'
-            ? `<p>Event <b>${eventTitle}</b> starts in <b>${minutes} minutes</b>.</p><p><i>${when}</i></p><p><a href="${link}">Open event</a></p>`
-            : `<p>Event <b>${eventTitle}</b> is <b>starting now</b>.</p><p><i>${when}</i></p><p><a href="${link}">Open event</a></p>`;
+    let subject;
+    let text;
+    let html;
 
-    return sendMail({ to, subject: subj, text, html });
+    if (kind === 'before15') {
+        subject = `Reminder: "${eventTitle}" starts in ${minutes} min`;
+        text = `Event "${eventTitle}" starts in ${minutes} minutes. When: ${when}. Open: ${link}`;
+        html = `<p>Event <b>${eventTitle}</b> starts in <b>${minutes} minutes</b>.</p>
+<p><i>${when}</i></p>
+<p><a href="${link}">Open event</a></p>`;
+    } else if (kind === 'start') {
+        subject = `Now: "${eventTitle}" is starting`;
+        text = `Event "${eventTitle}" is starting now. When: ${when}. Open: ${link}`;
+        html = `<p>Event <b>${eventTitle}</b> is <b>starting now</b>.</p>
+<p><i>${when}</i></p>
+<p><a href="${link}">Open event</a></p>`;
+    } else if (kind === 'end') {
+        subject = `Finished: "${eventTitle}" has ended`;
+        text = `Event "${eventTitle}" has just finished. When: ${when}. Open: ${link}`;
+        html = `<p>Event <b>${eventTitle}</b> has <b>just finished</b>.</p>
+<p><i>${when}</i></p>
+<p><a href="${link}">Open event</a></p>`;
+    } else {
+        // запасной вариант, если вдруг прилетит что-то левое
+        subject = `Reminder: "${eventTitle}"`;
+        text = `Reminder for event "${eventTitle}". When: ${when}. Open: ${link}`;
+        html = `<p>Reminder for event <b>${eventTitle}</b>.</p>
+<p><i>${when}</i></p>
+<p><a href="${link}">Open event</a></p>`;
+    }
+
+    return sendMail({ to, subject, text, html });
 }

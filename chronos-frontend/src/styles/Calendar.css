@@ -55,7 +55,7 @@
     align-items: center;
     margin-left: calc(-1 * 28px);
     margin-right: calc(-1 * 28px);
-    color: #8c8c8c;
+    color: var(--text);
 }
 .calendar-appbar .brand {
     display: flex;
@@ -393,7 +393,7 @@
     height: 36px;
     border-radius: 9999px;
     border: none;
-    background: #ffd3ec;
+    background: var(--arr-bg);
     color: #222;
     font-size: 18px;
     font-weight: 900;
@@ -562,6 +562,8 @@
 
     scrollbar-gutter: stable;
     overscroll-behavior: contain;
+
+    position: relative;
 }
 
 /* левая колонка времени */
@@ -603,18 +605,60 @@
     background: var(--hover-theme);
 }
 /* события поверх слотов */
+
 .day-col .event {
-    margin: 3px 6px; /* подпадает в ту же «дорожку» */
+    position: absolute;
     border-radius: 12px;
-    padding: 6px 8px;
+    padding: 8px 6px;
     background: #e9d5ff;
     border: 1px solid #e2c7ff;
     font-size: 12px;
     display: flex;
-    align-items: center;
+    flex-direction: column; /* ✅ добавь */
+    align-items: flex-start; /* ✅ чтобы текст слева */
     box-shadow: var(--shadow-card);
-    z-index: 2; /* поверх .slot */
+    z-index: 2;
+    box-sizing: border-box;
+    overflow: hidden;
 }
+.ev-title {
+    display: flex;
+    flex-direction: row;
+    font-weight: 600;
+    font-size: 16px;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-theme);
+    gap: 6px;
+    align-items: end;
+}
+.ev-desc {
+    font-weight: 600;
+    font-size: 14px;
+    margin-top: 6px;
+
+    /* текст внутри, не вылазит */
+    overflow: hidden;
+
+    /* перенос по словам и по очень длинным “словам” */
+    white-space: normal;
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+
+    /* максимум 2 строки, дальше обрезаем (браузеры на WebKit/Chromium) */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.ev-icon {
+    width: 18px;
+    height: auto;
+}
+
 .day-col .event.reminder {
     background: var(--rem-bg);
     border-color: var(--rem-br);
@@ -626,6 +670,260 @@
 .day-col .event.arrangement {
     background: var(--arr-bg);
     border-color: var(--arr-br);
+}
+
+/* попап события (как на макете, сбоку от ивента) */
+.week-grid .event-popover {
+    position: absolute;
+    z-index: 5;
+
+    background: var(--border);
+    border-radius: 18px;
+    border: 2px solid var(--bg-theme);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6);
+    padding: 10px 14px 12px;
+
+    box-sizing: border-box;
+    max-width: 100%;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+/* чтобы текст внутри никогда не вылазил */
+.event-popover .ep-desc,
+.event-popover .ep-meta-row .value {
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+/* верхняя строка */
+.event-popover .ep-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+    font-size: 18px;
+}
+.event-popover .ep-head-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.ep-head-left .em-sep {
+    display: inline-block;
+    width: 2px;
+    height: 22px;
+    background: var(--arr-bg);
+    border-radius: 999px;
+}
+.event-popover .ep-calendar {
+    font-weight: 600;
+    color: #96c0be;
+}
+
+.event-popover .ep-share-btn {
+    border: none;
+    background: transparent;
+    padding: 2px;
+    border-radius: 999px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.event-popover .ep-share-btn img {
+    width: 20px;
+    height: auto;
+}
+.event-popover .ep-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.event-popover .ep-icon {
+    width: 20px;
+    height: auto;
+    flex-shrink: 0;
+}
+.event-popover .ep-time {
+    font-size: 12px;
+    color: var(--text);
+    margin-bottom: 12px;
+}
+
+.event-popover .ep-desc {
+    font-size: 18px;
+    margin-bottom: 2px;
+    font-weight: 600;
+}
+/* owner / members + маленький delete справа */
+.event-popover .ep-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 16px;
+    color: var(--text);
+    margin-bottom: 8px;
+}
+.event-popover .ep-meta-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.event-popover .ep-meta-row .label {
+    font-weight: 600;
+    margin-right: 4px;
+}
+
+.event-popover .ep-meta-row .value {
+    color: #e5e7eb;
+}
+
+.event-popover .ep-members-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.event-popover .ep-member-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.event-popover .ep-member-del {
+    border: none;
+    background: none;
+    padding: 0;
+    margin-left: 8px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    color: #93c5fd;
+    white-space: nowrap;
+}
+
+.event-popover .ep-member-del:hover {
+    text-decoration: underline;
+}
+
+.event-popover .ep-delete-link {
+    border: none;
+    background: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    color: #93c5fd;
+}
+
+.event-popover .ep-delete-link:hover {
+    text-decoration: underline;
+}
+
+.event-popover .ep-footer {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.event-popover .ep-delete {
+    border: none;
+    border-radius: 12px;
+    padding: 6px 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    background: #96c0be;
+    color: var(--text-theme);
+}
+.event-popover .ep-delete:hover {
+    filter: brightness(1.05);
+}
+
+/* === Invite to event (inside popover) === */
+
+.event-popover .ep-invite {
+    margin: 6px 0;
+    padding-top: 6px;
+    border-top: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.event-popover .ep-invite-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #96c0be;
+    margin-bottom: 4px;
+}
+
+.event-popover .ep-invite-box {
+    display: flex;
+    align-items: center;
+    border-radius: 999px;
+    border: 2px solid #f4cfe8;
+    padding: 2px 4px 2px 10px;
+    background: transparent;
+}
+
+.event-popover .ep-invite-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 12px;
+    color: var(--text);
+    font-weight: 600;
+}
+
+.event-popover .ep-invite-input::placeholder {
+    color: #bbbac0;
+    opacity: 0.9;
+}
+
+.event-popover .ep-invite-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    border: none;
+    background: var(--arr-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.event-popover .ep-invite-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.event-popover .ep-invite-btn img {
+    width: 14px;
+    height: 14px;
+}
+
+.event-popover .ep-invite-msg {
+    margin-top: 4px;
+    font-size: 11px;
+    color: #9ca3af;
+}
+
+.event-popover .ep-invite-msg.is-ok {
+    color: #6ee7b7;
+}
+
+.event-popover .ep-invite-msg.is-error {
+    color: #fb7185;
 }
 
 /* ==========================================================================
@@ -669,9 +967,11 @@
     position: relative;
     background: var(--bg-theme);
     border-radius: 12px;
-    padding: 6px;
+    padding: 6px 8px 40px; /* ← снизу побольше место */
     cursor: pointer;
+    box-sizing: border-box;
 }
+
 .month-cell:hover {
     background: var(--hover-theme);
 }
@@ -725,37 +1025,60 @@
 /* events */
 
 .cell-events {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 10px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    margin-top: 20px;
+    gap: 3px;
+    margin: 0;
+    pointer-events: auto;
+    align-items: end;
 }
+
 .pill {
-    font-size: 12px;
-    padding: 4px 8px;
-    border-radius: 9999px;
+    font-size: 16px;
+    padding: 9px 6px;
+    border-radius: 12px;
     width: 100%;
+    min-height: 24px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
     overflow: hidden;
-    text-overflow: ellipsis;
+    border: 1px solid transparent;
+    box-sizing: border-box;
+}
+/* иконка слева (для стандартных категорий) */
+.pill-icon {
+    flex: 0 0 18px;
+    width: 20px;
+    height: auto;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.pill-icon img {
+    width: 20px;
+    height: auto;
+}
+
+/* текст, обрезается троеточием */
+.pill-label {
+    flex: 1 1 auto;
+    overflow: hidden;
     white-space: nowrap;
-    background: #e9d5ff;
-    border: 1px solid #e2c7ff;
+    color: var(--text-theme);
 }
-.pill.reminder {
-    background: var(--rem-bg);
-    border-color: var(--rem-br);
-}
-.pill.task {
-    background: var(--task-bg);
-    border-color: var(--task-br);
-}
-.pill.arrangement {
-    background: var(--arr-bg);
-    border-color: var(--arr-br);
-}
+
+/* старые .pill.arrangement / .pill.task / .pill.reminder
+   можно удалить, они больше не нужны, цвета идут из inline-style */
+
 .more {
     font-size: 12px;
-    color: #64748b;
+    color: var(--text);
 }
 
 /* ==========================================================================
@@ -887,4 +1210,340 @@
 }
 .icon.caret {
     margin-left: 6px;
+}
+
+/* ========================================================================== */
+/* NEW EVENT MODAL                                                            */
+/* ========================================================================== */
+
+.event-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 12, 18, 0.55);
+    backdrop-filter: blur(2px);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+}
+
+.event-modal {
+    width: 880px;
+    max-width: 95vw;
+    min-height: 360px;
+    background: var(--border);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+    border-radius: 24px;
+    border: 2px solid #2c2d4c;
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    overflow: hidden;
+}
+
+/* левая часть */
+.event-modal-left {
+    padding: 26px 24px;
+    display: flex;
+    flex-direction: column;
+}
+.event-modal-title-line {
+    font-size: 30px;
+    font-weight: 600;
+    color: var(--scroll-thumb);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+}
+.event-modal-title-line .em-label {
+    white-space: nowrap;
+}
+.event-modal-title-line .em-sep {
+    display: inline-block;
+    width: 6px;
+    height: 32px;
+    background: var(--arr-bg);
+    border-radius: 999px;
+}
+
+.event-modal-left .em-input-title {
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: 6px 0;
+    outline: none;
+    color: var(--text);
+    font: inherit;
+    font-size: 30px;
+}
+.event-modal-left .em-input-title::placeholder {
+    color: var(--text);
+}
+.event-modal-left .em-input-desc {
+    margin-top: 18px;
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: 6px 0;
+    color: var(--text);
+    font-size: 24px;
+    font-family: 'League Spartan', system-ui, sans-serif;
+    font-weight: 600;
+    outline: none;
+    resize: none;
+    height: auto;
+    min-height: 24px;
+    max-height: 200px;
+    overflow-y: hidden;
+}
+.event-modal-left .em-input-desc::placeholder {
+    color: var(--text);
+}
+
+/* правая часть */
+.event-modal-right {
+    padding: 20px 22px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.em-form {
+    padding-left: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-left: 3px solid var(--bg-theme);
+}
+.em-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.em-field label {
+    font-size: 16px;
+    font-weight: 600;
+    color: #96c0be;
+}
+.em-field input,
+.em-field select {
+    height: 34px;
+    border-radius: 11px;
+    border: 3px solid var(--arr-bg);
+    background: transparent;
+    color: var(--text);
+    padding: 0 12px;
+    font-size: 14px;
+    outline: none;
+    font-family: 'League Spartan', system-ui, sans-serif;
+}
+.em-field input:focus,
+.em-field select:focus {
+    border-color: #96c0be;
+}
+.em-inline {
+    display: flex;
+    gap: 10px;
+}
+.em-inline .em-field {
+    flex: 1;
+}
+
+.em-actions {
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+.btn2 {
+    appearance: none;
+    border: 0;
+    cursor: pointer;
+    background: transparent;
+    color: #ffffff;
+    font-weight: 600;
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-size: 18px;
+    line-height: 1;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    font-family: 'League Spartan', system-ui, -apple-system, Segoe UI, Roboto,
+        Arial, sans-serif;
+}
+.btn2:hover {
+    scale: 1.02;
+    background: rgba(197, 189, 240, 0.18);
+}
+.btn1:hover {
+    scale: 1.02;
+}
+
+/* ========================================================================== */
+/* категории в модалке new event */
+
+.em-cat-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.em-cat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 2px solid var(--cat-color, #c5bdf0);
+    background: transparent;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+}
+
+.em-cat-chip:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.em-cat-chip--active {
+    color: #e2e8f0;
+
+    background: rgba(197, 189, 240, 0.18);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.em-cat-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--cat-color, #c5bdf0);
+}
+
+/* блок новой категории */
+
+.em-cat-new-wrap {
+    position: relative;
+    margin-top: 8px;
+}
+
+.em-cat-new {
+    display: flex;
+    align-items: center;
+    border: none;
+    background: transparent;
+}
+.em-cat-new-color {
+    position: absolute;
+    right: 10px;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    border: 2px solid var(--newcat-color, #c5bdf0);
+    background: var(--newcat-color, #c5bdf0);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.em-cat-new-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    outline: none;
+    color: #e2e8f0;
+    font-size: 14px;
+    font-family: 'League Spartan', system-ui, sans-serif;
+}
+
+/* поповер с цветами */
+
+.em-cat-color-pop {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 6px;
+    padding: 6px 8px;
+    border-radius: 12px;
+    background: #151726;
+    border: 1px solid #2c2d4c;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+    display: flex;
+    gap: 6px;
+    z-index: 60;
+}
+
+.em-cat-color-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background: var(--dot-color, #c5bdf0);
+    cursor: pointer;
+}
+
+.em-cat-color-dot.active {
+    border-color: #ffffff;
+}
+.em-cat-label {
+    white-space: nowrap;
+}
+
+.em-cat-delete {
+    font-size: 11px;
+    opacity: 0.6;
+    cursor: pointer;
+    padding: 0 2px;
+}
+.em-cat-delete:hover {
+    opacity: 1;
+}
+.em-cat-delete-confirm {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    border: 1px solid #d65050;
+    background: rgba(214, 80, 80, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 12px;
+    color: #fca5a5;
+}
+
+.em-cat-delete-text {
+    line-height: 1.4;
+}
+
+.em-cat-delete-name {
+    font-weight: 700;
+}
+
+.em-cat-delete-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.em-cat-del-btn {
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid #4b5563;
+    background: transparent;
+    color: #e5e7eb;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.em-cat-del-btn:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.em-cat-del-btn--danger {
+    border-color: #f97373;
+    color: #fecaca;
+}
+
+.em-cat-del-btn--danger:hover {
+    background: rgba(249, 115, 129, 0.16);
 }
