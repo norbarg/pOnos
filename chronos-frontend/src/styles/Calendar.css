@@ -34,6 +34,11 @@
     --scroll-thumb: #96c0be; /* основной цвет ползунка */
     --scroll-thumb-hover: #5d6294; /* при наведении */
     --scroll-track: transparent; /* трек почти невидимый */
+
+    /* праздники */
+    --holiday-bg: rgba(147, 161, 166, 1);
+    --holiday-pill-bg: rgba(220, 38, 38, 0.9);
+    --holiday-pill-border: rgba(254, 202, 202, 0.95);
 }
 /* ---------- page container ---------- */
 
@@ -671,6 +676,10 @@
     background: var(--arr-bg);
     border-color: var(--arr-br);
 }
+.day-header--holiday .date,
+.day-header--holiday .dow {
+    color: var(--holiday-bg);
+}
 
 /* попап события (как на макете, сбоку от ивента) */
 .week-grid .event-popover {
@@ -989,6 +998,61 @@
     display: none;
 }
 
+.month-cell.holiday-day {
+    /* background: linear-gradient(
+        135deg,
+        var(--holiday-bg),
+        rgba(15, 23, 42, 0.9)
+    ); */
+    background: var(--holiday-bg);
+}
+
+.cell-holiday-label {
+    padding: 10px;
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    right: 46px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 18px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cell-holiday-icon {
+    transform: translateY(-3px);
+    flex: 0 0 20px;
+    /* width: 25px; */
+    /* height: auto; */
+    /* border-radius: 9999px; */
+    display: flex;
+    align-items: self-start;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.cell-holiday-icon img {
+    width: 20px;
+    height: auto;
+    object-fit: contain;
+}
+
+/* текст рядом с иконкой */
+.cell-holiday-text {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Цвет текста на праздничном дне */
+.month-cell.holiday-day .cell-holiday-label {
+    color: var(--text-theme); /* тот же, что и для числа на holiday */
+}
+
 .cell-date {
     position: absolute;
     top: 6px;
@@ -1072,9 +1136,6 @@
     white-space: nowrap;
     color: var(--text-theme);
 }
-
-/* старые .pill.arrangement / .pill.task / .pill.reminder
-   можно удалить, они больше не нужны, цвета идут из inline-style */
 
 .more {
     font-size: 12px;

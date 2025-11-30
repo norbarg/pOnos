@@ -27,6 +27,13 @@ function defaultTimes() {
         endTime: `${pad2(h + 1)}:00`,
     };
 }
+function slugify(s) {
+    return String(s || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '');
+}
 
 // варианты повторения -> RRULE
 const REPEAT_RRULE = {
@@ -77,18 +84,46 @@ export default function NewEventPage() {
     );
 
     // подхватить дату из state, если есть
+    // подхватить только дату из state.date, если нет slotStart
     useEffect(() => {
-        if (preselectDate) {
-            if (/^\d{4}-\d{2}-\d{2}/.test(preselectDate)) {
-                setDate(preselectDate.slice(0, 10));
-            } else {
-                const d = new Date(preselectDate);
-                if (!Number.isNaN(d.getTime())) {
-                    setDate(formatDateInput(d));
-                }
+        const st = location.state;
+        if (!st) return;
+
+        // если есть slotStart — он главнее, тут ничего не делаем
+        if (st.slotStart) return;
+
+        const preselectDate = st.date;
+        if (!preselectDate) return;
+
+        if (/^\d{4}-\d{2}-\d{2}/.test(preselectDate)) {
+            setDate(preselectDate.slice(0, 10));
+        } else {
+            const d = new Date(preselectDate);
+            if (!Number.isNaN(d.getTime())) {
+                setDate(formatDateInput(d));
             }
         }
-    }, [preselectDate]);
+    }, [location.state]);
+    // если пришёл slotStart (клик по ячейке недели) — ставим дату и время
+    useEffect(() => {
+        const st = location.state;
+        if (!st?.slotStart) return;
+
+        const d = new Date(st.slotStart);
+        if (Number.isNaN(d.getTime())) return;
+
+        // дата
+        setDate(formatDateInput(d));
+
+        // время старта
+        const h = d.getHours();
+        const m = d.getMinutes();
+        setStartTime(`${pad2(h)}:${pad2(m)}`);
+
+        // конец через 30 минут
+        const end = new Date(d.getTime() + 30 * 60 * 1000);
+        setEndTime(`${pad2(end.getHours())}:${pad2(end.getMinutes())}`);
+    }, [location.state]);
 
     // click-away для поповера выбора цвета
     useEffect(() => {
@@ -118,13 +153,29 @@ export default function NewEventPage() {
 
                 const rawCals = calsData?.calendars || [];
 
-                // убираем системный holidays
+                // ❌ убираем системный календарь праздников из списка для выбора
                 const userCals = rawCals.filter(
                     (c) => !(c.isSystem && c.systemType === 'holidays')
                 );
                 setCalendars(userCals);
 
-                const catsList = catsData?.categories ?? catsData ?? [];
+                const catsRaw = catsData?.categories ?? catsData ?? [];
+
+                // ❌ убираем системную категорию Holiday
+                const catsList = catsRaw.filter((c) => {
+                    const builtIn = (c.builtInKey || c.key || '').toLowerCase();
+                    if (builtIn === 'holiday') return false;
+
+                    const title = (c.title || c.name || '').toLowerCase();
+                    if (title === 'holiday' || title === 'holidays')
+                        return false;
+
+                    const slug = (
+                        c.slug || slugify(c.title || c.name || builtIn || '')
+                    ).toLowerCase();
+                    return slug !== 'holiday';
+                });
+
                 setCategories(catsList);
 
                 const main =

@@ -436,9 +436,24 @@ export default function CalendarsPage() {
         (async () => {
             try {
                 const { data } = await api.get('/categories'); // твій ендпойнт
-                const list = (data?.categories ?? data ?? []).map(
-                    normalizeCategory
-                );
+                const raw = data?.categories ?? data ?? [];
+
+                // ❌ выкидываем системную категорию праздников
+                const filtered = raw.filter((c) => {
+                    const builtIn = (c.builtInKey || c.key || '').toLowerCase();
+                    if (builtIn === 'holiday') return false;
+
+                    const title = (c.title || c.name || '').toLowerCase();
+                    if (title === 'holiday' || title === 'holidays')
+                        return false;
+
+                    const slug = (
+                        c.slug || slugify(c.name || c.title || builtIn || '')
+                    ).toLowerCase();
+                    return slug !== 'holiday';
+                });
+
+                const list = filtered.map(normalizeCategory);
                 setCatDefs(list);
             } catch (e) {
                 // запасні дефолти, якщо бек недоступний
@@ -719,13 +734,15 @@ export default function CalendarsPage() {
         const catsSet = new Set(categories || []);
 
         return events.filter((e) => {
+            // 🎉 Праздники всегда видимы, вне поиска и категорий
+            if (e.isHoliday) return true;
+
             const text = (
                 (e.title || '') +
                 ' ' +
                 (e.description || '')
             ).toLowerCase();
 
-            // на всякий случай ещё раз нормализуем категорию
             const evSlug = slugify(
                 e.category ||
                     e.categoryInfo?.builtInKey ||
@@ -734,8 +751,7 @@ export default function CalendarsPage() {
 
             const catOK =
                 !hasCatFilter || // нет выбранных → показываем всё
-                catsSet.has(evSlug) || // slug совпал
-                e.isHoliday; // праздники пропускаем всегда
+                catsSet.has(evSlug); // slug совпал
 
             return catOK && (!q || text.includes(q));
         });
@@ -918,6 +934,7 @@ export default function CalendarsPage() {
                         events={visibleEvents}
                         filters={categories}
                         onDateSelect={(d) => setCurrentDate(d)}
+                        calendarId={mainCal?.id} // 👈 для предвыбора календаря
                     />
                 )}
                 {viewMode === 'month' && (

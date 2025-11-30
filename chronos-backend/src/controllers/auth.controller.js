@@ -3,7 +3,10 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { createMainCalendar } from '../services/calendar.service.js';
-import { ensureHolidaysCalendar } from '../services/holidays.service.js';
+import {
+    ensureHolidaysCalendar,
+    ensureUserHolidaysSeed,
+} from '../services/holidays.service.js';
 import { attachPendingInvitesForEmail } from '../services/invite.service.js';
 
 function signToken(userId, email) {
@@ -14,7 +17,8 @@ function signToken(userId, email) {
 
 export async function register(req, res) {
     try {
-        const { email, password, passwordConfirm, name } = req.body || {};
+        const { email, password, passwordConfirm, name, countryCode } =
+            req.body || {};
 
         if (!email || !password || !passwordConfirm) {
             return res.status(400).json({ error: 'missing-fields' });
@@ -28,6 +32,15 @@ export async function register(req, res) {
             typeof name === 'string' && name.trim()
                 ? name.trim().toLowerCase()
                 : undefined;
+
+        // нормализуем страну (по умолчанию UA)
+        let normalizedCountry = 'UA';
+        if (typeof countryCode === 'string' && countryCode.trim()) {
+            const cc = countryCode.trim().toUpperCase();
+            if (/^[A-Z]{2}$/.test(cc)) {
+                normalizedCountry = cc;
+            }
+        }
 
         // проверка email
         if (await User.findOne({ email: normalizedEmail }).lean()) {
@@ -48,10 +61,14 @@ export async function register(req, res) {
             email: normalizedEmail,
             name: normalizedName,
             passwordHash,
+            countryCode: normalizedCountry,
         });
 
         await createMainCalendar(user._id);
-        await ensureHolidaysCalendar(user._id, 'UA');
+
+        // вместо простого ensureHolidaysCalendar — полноценная сидировка
+        await ensureUserHolidaysSeed(user._id, normalizedCountry);
+
         await attachPendingInvitesForEmail(normalizedEmail, user._id);
 
         const token = signToken(user._id.toString(), user.email);
@@ -96,7 +113,13 @@ export async function login(req, res) {
 export async function me(req, res) {
     try {
         const user = await User.findById(req.user.id)
-            .select({ email: 1, name: 1, avatar: 1, createdAt: 1 }) // дата
+            .select({
+                email: 1,
+                name: 1,
+                avatar: 1,
+                createdAt: 1,
+                countryCode: 1,
+            })
             .lean();
 
         if (!user) return res.status(404).json({ error: 'not-found' });
@@ -106,8 +129,9 @@ export async function me(req, res) {
                 id: user._id.toString(),
                 email: user.email,
                 name: user.name,
-                avatar: user.avatar, // <- ВАЖНО
-                createdAt: user.createdAt, // дата
+                avatar: user.avatar,
+                createdAt: user.createdAt,
+                countryCode: user.countryCode || 'UA',
             },
         });
     } catch (e) {

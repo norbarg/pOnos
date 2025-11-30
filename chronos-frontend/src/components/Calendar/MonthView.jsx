@@ -5,6 +5,7 @@ import '../../styles/Calendar.css';
 import catArrangement from '../../assets/cat_arrangement.png';
 import catReminder from '../../assets/cat_reminder.png';
 import catTask from '../../assets/cat_task.png';
+import holidayIcon from '../../assets/holiday_icon.png'; // <-- путь подставь свой
 
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -377,10 +378,24 @@ export default function MonthView({
         return () => el.removeEventListener('scroll', onScroll);
     }, [onMonthChange, onViewportMonthChange]);
 
-    // индекс событий по дню
+    // индекс ОБЫЧНЫХ событий по дню
     const eventsIndex = useMemo(() => {
         const map = new Map();
         for (const ev of events) {
+            if (ev.isHoliday) continue; // праздники — отдельно
+            const d = new Date(ev.start);
+            const key = d.toDateString();
+            if (!map.has(key)) map.set(key, []);
+            map.get(key).push(ev);
+        }
+        return map;
+    }, [events]);
+
+    // индекс ПРАЗДНИКОВ по дню
+    const holidaysIndex = useMemo(() => {
+        const map = new Map();
+        for (const ev of events) {
+            if (!ev.isHoliday) continue;
             const d = new Date(ev.start);
             const key = d.toDateString();
             if (!map.has(key)) map.set(key, []);
@@ -427,11 +442,22 @@ export default function MonthView({
                     >
                         <div className="month-grid">
                             {days.map((d, i) => {
+                                const dayKey = d.toDateString();
+
                                 const inMonth =
                                     d >= monthStart && d <= monthEnd;
+
                                 const list = inMonth
-                                    ? eventsIndex.get(d.toDateString()) || []
+                                    ? eventsIndex.get(dayKey) || []
                                     : [];
+
+                                const holidays = inMonth
+                                    ? holidaysIndex.get(dayKey) || []
+                                    : [];
+
+                                const isHolidayDay = holidays.length > 0;
+                                const mainHoliday = holidays[0] || null;
+
                                 const dateClass =
                                     inMonth && isActiveBlock
                                         ? 'cur'
@@ -450,7 +476,7 @@ export default function MonthView({
                                         key={i}
                                         className={`month-cell ${
                                             inMonth ? 'in' : 'pad'
-                                        }`}
+                                        } ${isHolidayDay ? 'holiday-day' : ''}`}
                                         onClick={() =>
                                             inMonth && onDateSelect?.(d)
                                         }
@@ -481,6 +507,35 @@ export default function MonthView({
                                         >
                                             {inMonth ? d.getDate() : ''}
                                         </div>
+
+                                        {/* 🔹 Название праздника сверху, на одной высоте с числом */}
+                                        {inMonth &&
+                                            isHolidayDay &&
+                                            mainHoliday && (
+                                                <div
+                                                    className="cell-holiday-label"
+                                                    title={holidays
+                                                        .map((h) => h.title)
+                                                        .join(', ')}
+                                                >
+                                                    <span className="cell-holiday-icon">
+                                                        <img
+                                                            src={holidayIcon}
+                                                            alt=""
+                                                        />
+                                                    </span>
+                                                    <span className="cell-holiday-text">
+                                                        {mainHoliday.title ||
+                                                            'Holiday'}
+                                                        {holidays.length > 1 &&
+                                                            ` +${
+                                                                holidays.length -
+                                                                1
+                                                            }`}
+                                                    </span>
+                                                </div>
+                                            )}
+
                                         {inMonth && (
                                             <div
                                                 className="cell-events"
@@ -489,25 +544,21 @@ export default function MonthView({
                                                 }
                                             >
                                                 {(() => {
-                                                    const visible = list.slice(
-                                                        0,
-                                                        2
-                                                    ); // ← только 2
+                                                    const normalEvents = list;
+                                                    const visible =
+                                                        normalEvents.slice(
+                                                            0,
+                                                            2
+                                                        );
                                                     const extraCount =
-                                                        list.length -
+                                                        normalEvents.length -
                                                         visible.length;
 
                                                     return (
                                                         <>
-                                                            {/* {extraCount > 0 && (
-                                                                <div className="more">
-                                                                    +
-                                                                    {extraCount}
-                                                                </div>
-                                                            )} */}
+                                                            {/* если захочешь "+N" – можно вернуть extraCount */}
                                                             {visible.map(
                                                                 (e, idx) => {
-                                                                    // базовые цвета (как раньше)
                                                                     const baseBg =
                                                                         e.color ||
                                                                         CAT_BG[
@@ -523,7 +574,6 @@ export default function MonthView({
                                                                         ] ||
                                                                         'var(--arr-br)';
 
-                                                                    // если у события есть hex-цвет — делаем его полупрозрачным
                                                                     const isHex =
                                                                         typeof e.color ===
                                                                             'string' &&
@@ -572,7 +622,6 @@ export default function MonthView({
                                                                                 ev
                                                                             ) => {
                                                                                 ev.stopPropagation();
-                                                                                // прыгаем в week-view на день события
                                                                                 if (
                                                                                     onDateSelect &&
                                                                                     e.start

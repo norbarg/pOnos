@@ -1,5 +1,6 @@
 // chronos-frontend/src/components/Calendar/WeekView.jsx
 import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import '../../styles/Calendar.css';
 import catArrangement from '../../assets/cat_arrangement.png';
 import catReminder from '../../assets/cat_reminder.png';
@@ -362,10 +363,17 @@ function EventPopover({ event, top, left, onDeleteEvent, onRemoveMember }) {
     );
 }
 
-export default function WeekView({ weekStart, events, onDateSelect }) {
-    const [openInfo, setOpenInfo] = useState(null); // {event, top, left}
-    const [hiddenIds, setHiddenIds] = useState([]); // локально прячем удалённые
+export default function WeekView({
+    weekStart,
+    events,
+    onDateSelect,
+    calendarId, // 👈 новый проп
+}) {
+    const [openInfo, setOpenInfo] = useState(null);
+    const [hiddenIds, setHiddenIds] = useState([]);
     const gridRef = useRef(null);
+
+    const navigate = useNavigate();
 
     // Esc закрывает поповер
     useEffect(() => {
@@ -391,10 +399,32 @@ export default function WeekView({ weekStart, events, onDateSelect }) {
         });
     }, [events, hiddenIds]);
 
-    /** раскладка по дням */
+    // какие дни недели являются праздничными (есть хотя бы один holiday-ивент)
+    const holidayDayFlags = useMemo(() => {
+        const flags = Array(7).fill(false);
+        (visibleEvents || []).forEach((ev) => {
+            if (!ev.isHoliday) return;
+            const s = new Date(ev.start);
+            const e = new Date(ev.end);
+            for (let i = 0; i < 7; i++) {
+                const dayS = startOfDay(addDays(weekStart, i));
+                const dayE = endOfDay(addDays(weekStart, i));
+                if (e >= dayS && s <= dayE) {
+                    flags[i] = true;
+                }
+            }
+        });
+        return flags;
+    }, [visibleEvents, weekStart]);
+
     const dayEvents = useMemo(() => {
         const map = Array.from({ length: 7 }, () => []);
-        visibleEvents.forEach((ev) => {
+
+        const nonHolidayEvents = (visibleEvents || []).filter(
+            (ev) => !ev.isHoliday
+        );
+
+        nonHolidayEvents.forEach((ev) => {
             const s = new Date(ev.start),
                 e = new Date(ev.end);
             for (let i = 0; i < 7; i++) {
@@ -540,7 +570,13 @@ export default function WeekView({ weekStart, events, onDateSelect }) {
             <div className="week-header">
                 <div className="time-header"></div>
                 {days.map((d, i) => (
-                    <div className="day-header" key={i}>
+                    <div
+                        className={
+                            'day-header' +
+                            (holidayDayFlags[i] ? ' day-header--holiday' : '')
+                        }
+                        key={i}
+                    >
                         <div className="date">{d.getDate()}</div>
                         <div className="dow">{WEEKDAY[i]}</div>
                     </div>
@@ -567,18 +603,39 @@ export default function WeekView({ weekStart, events, onDateSelect }) {
 
                 {days.map((d, di) => (
                     <div
-                        className="day-col"
+                        className={
+                            'day-col' +
+                            (holidayDayFlags[di] ? ' day-col--holiday' : '')
+                        }
                         key={di}
                         onDoubleClick={() => onDateSelect?.(d)}
                     >
-                        {Array.from({ length: 48 }, (_, r) => (
-                            <div
-                                key={`slot-${di}-${r}`}
-                                className="slot"
-                                style={{ gridRow: `${r + 1} / span 1` }}
-                                aria-hidden="true"
-                            />
-                        ))}
+                        {Array.from({ length: 48 }, (_, r) => {
+                            // старт слота (полчаса) в локальном времени
+                            const slotStart = new Date(d);
+                            slotStart.setHours(0, 0, 0, 0);
+                            slotStart.setMinutes(r * 30); // r=0 -> 00:00, r=1 -> 00:30, ..., r=30 -> 15:00
+
+                            return (
+                                <div
+                                    key={`slot-${di}-${r}`}
+                                    className="slot"
+                                    style={{ gridRow: `${r + 1} / span 1` }}
+                                    aria-hidden="true"
+                                    onClick={(e) => {
+                                        e.stopPropagation(); // не закрывать попап просто так
+
+                                        navigate('/event', {
+                                            state: {
+                                                calId: calendarId || undefined,
+                                                slotStart:
+                                                    slotStart.toISOString(), // 👈 передаем точное время
+                                            },
+                                        });
+                                    }}
+                                />
+                            );
+                        })}
 
                         {dayEvents[di].map((ev) => {
                             const top = (ev._rowStart - 1) * SLOT_HEIGHT_PX + 3;

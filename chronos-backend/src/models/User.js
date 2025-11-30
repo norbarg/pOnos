@@ -28,6 +28,16 @@ const userSchema = new mongoose.Schema(
         },
         passwordHash: { type: String, required: true },
         avatar: { type: String, trim: true }, // /uploads/avatars/xxx.png
+
+        // страна для календаря праздников (ISO 3166-1 alpha-2: UA, PL, DE, ...)
+        countryCode: {
+            type: String,
+            trim: true,
+            uppercase: true,
+            minlength: 2,
+            maxlength: 2,
+            default: 'UA',
+        },
     },
     { timestamps: true }
 );

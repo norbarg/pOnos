@@ -122,6 +122,135 @@ export default function Profile() {
     const [menuFor, setMenuFor] = useState(null);
     const [editCal, setEditCal] = useState(null);
 
+    const loadCalendars = async () => {
+        try {
+            const { data } = await api.get('/calendars');
+            const raw = Array.isArray(data?.calendars) ? data.calendars : [];
+
+            const main = raw.find((c) => c.isMain);
+            const holidays = raw.find(
+                (c) => c.isSystem && c.systemType === 'holidays'
+            );
+            const visible = raw.filter(
+                (c) => !(c.isSystem && c.systemType === 'holidays')
+            );
+
+            if (main && holidays) {
+                main.hasHolidays = true;
+                if (!main.countryCode && holidays.countryCode)
+                    main.countryCode = holidays.countryCode;
+            }
+
+            visible.sort((a, b) => (b.isMain ? 1 : 0) - (a.isMain ? 1 : 0));
+
+            const withMembers = await Promise.all(
+                visible.map(async (cal) => {
+                    try {
+                        const { data: mdata } = await api.get(
+                            `/calendars/${cal.id}/members`
+                        );
+                        const list = Array.isArray(mdata?.members)
+                            ? mdata.members
+                            : [];
+
+                        const names = list
+                            .map(
+                                (m) =>
+                                    m?.name ||
+                                    (m?.email ? m.email.split('@')[0] : 'user')
+                            )
+                            .filter(Boolean);
+                        const preview = names.slice(0, 3);
+                        const hasMore = names.length > 3;
+
+                        const ownerId = mdata?.owner?.id || cal.owner;
+                        const ownerName =
+                            mdata?.owner?.name ||
+                            (mdata?.owner?.email
+                                ? mdata.owner.email.split('@')[0]
+                                : 'user');
+
+                        return {
+                            ...cal,
+                            owner: ownerId,
+                            _ownerId: ownerId,
+                            _ownerName: ownerName,
+                            _membersPreview: preview,
+                            _membersHasMore: hasMore,
+                        };
+                    } catch {
+                        return {
+                            ...cal,
+                            _membersPreview: [],
+                            _membersHasMore: false,
+                        };
+                    }
+                })
+            );
+
+            const now = new Date();
+            const from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const to = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
+
+            const withEvents = await Promise.all(
+                withMembers.map(async (cal) => {
+                    let evs = [];
+                    try {
+                        const { data: edata } = await api.get(
+                            `/calendars/${cal.id}/events`,
+                            {
+                                params: {
+                                    from: from.toISOString(),
+                                    to: to.toISOString(),
+                                    expand: 1,
+                                },
+                            }
+                        );
+                        evs = Array.isArray(edata?.events) ? edata.events : [];
+                    } catch {}
+
+                    if (!evs.length) {
+                        try {
+                            const { data: allData } = await api.get(
+                                `/calendars/${cal.id}/events`
+                            );
+                            evs = Array.isArray(allData?.events)
+                                ? allData.events
+                                : [];
+                        } catch {}
+                    }
+
+                    const picked = pickTwoUpcomingOrLast(evs, now);
+
+                    let desc = cal.description;
+                    if (
+                        !desc &&
+                        cal.isMain &&
+                        cal.hasHolidays &&
+                        cal.countryCode
+                    ) {
+                        desc = `National holidays for ${cal.countryCode}`;
+                    }
+
+                    return {
+                        ...cal,
+                        description: desc,
+                        _eventsPreview: picked.preview,
+                        _eventsMore: picked.more,
+                    };
+                })
+            );
+
+            setCalendars(withEvents);
+        } catch (e) {
+            console.warn(
+                'calendars load failed:',
+                e?.response?.data || e.message
+            );
+            setCalendars([]);
+        }
+    };
+
     const me = useMemo(() => {
         if (!user) return null;
         const id = user.id || user._id || user.sub || null;
@@ -147,139 +276,7 @@ export default function Profile() {
 
     useEffect(() => {
         dispatch(fetchMe());
-
-        (async () => {
-            try {
-                const { data } = await api.get('/calendars');
-                const raw = Array.isArray(data?.calendars)
-                    ? data.calendars
-                    : [];
-
-                const main = raw.find((c) => c.isMain);
-                const holidays = raw.find(
-                    (c) => c.isSystem && c.systemType === 'holidays'
-                );
-                const visible = raw.filter(
-                    (c) => !(c.isSystem && c.systemType === 'holidays')
-                );
-
-                if (main && holidays) {
-                    main.hasHolidays = true;
-                    if (!main.countryCode && holidays.countryCode)
-                        main.countryCode = holidays.countryCode;
-                }
-
-                visible.sort((a, b) => (b.isMain ? 1 : 0) - (a.isMain ? 1 : 0));
-
-                const withMembers = await Promise.all(
-                    visible.map(async (cal) => {
-                        try {
-                            const { data: mdata } = await api.get(
-                                `/calendars/${cal.id}/members`
-                            );
-                            const list = Array.isArray(mdata?.members)
-                                ? mdata.members
-                                : [];
-
-                            const names = list
-                                .map(
-                                    (m) =>
-                                        m?.name ||
-                                        (m?.email
-                                            ? m.email.split('@')[0]
-                                            : 'user')
-                                )
-                                .filter(Boolean);
-                            const preview = names.slice(0, 3);
-                            const hasMore = names.length > 3;
-
-                            const ownerId = mdata?.owner?.id || cal.owner;
-                            const ownerName =
-                                mdata?.owner?.name ||
-                                (mdata?.owner?.email
-                                    ? mdata.owner.email.split('@')[0]
-                                    : 'user');
-
-                            return {
-                                ...cal,
-                                owner: ownerId,
-                                _ownerId: ownerId,
-                                _ownerName: ownerName,
-                                _membersPreview: preview,
-                                _membersHasMore: hasMore,
-                            };
-                        } catch {
-                            return {
-                                ...cal,
-                                _membersPreview: [],
-                                _membersHasMore: false,
-                            };
-                        }
-                    })
-                );
-                const now = new Date();
-                const from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-                const to = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
-
-                const withEvents = await Promise.all(
-                    withMembers.map(async (cal) => {
-                        let evs = [];
-                        try {
-                            const { data: edata } = await api.get(
-                                `/calendars/${cal.id}/events`,
-                                {
-                                    params: {
-                                        from: from.toISOString(),
-                                        to: to.toISOString(),
-                                        expand: 1,
-                                    },
-                                }
-                            );
-                            evs = Array.isArray(edata?.events)
-                                ? edata.events
-                                : [];
-                        } catch {}
-                        if (!evs.length) {
-                            try {
-                                const { data: allData } = await api.get(
-                                    `/calendars/${cal.id}/events`
-                                );
-                                evs = Array.isArray(allData?.events)
-                                    ? allData.events
-                                    : [];
-                            } catch {}
-                        }
-
-                        const picked = pickTwoUpcomingOrLast(evs, now);
-
-                        let desc = cal.description;
-                        if (
-                            !desc &&
-                            cal.isMain &&
-                            cal.hasHolidays &&
-                            cal.countryCode
-                        ) {
-                            desc = `National holidays for ${cal.countryCode}`;
-                        }
-
-                        return {
-                            ...cal,
-                            description: desc,
-                            _eventsPreview: picked.preview,
-                            _eventsMore: picked.more,
-                        };
-                    })
-                );
-
-                setCalendars(withEvents);
-            } catch (e) {
-                console.warn(
-                    'calendars load failed:',
-                    e?.response?.data || e.message
-                );
-                setCalendars([]);
-            }
-        })();
+        loadCalendars();
     }, [dispatch]);
 
     function handleCreated(cal) {
@@ -289,6 +286,7 @@ export default function Profile() {
 
     function handleUpdated() {
         dispatch(fetchMe());
+        loadCalendars();
     }
 
     function handleDeleted() {
