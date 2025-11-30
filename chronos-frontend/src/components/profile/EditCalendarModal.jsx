@@ -176,7 +176,9 @@ export default function EditCalendarModal({
                         ))}
                     </div>
                 </div>
-
+                <div className="ep-hint">
+                              Calendar header color
+                            </div>
                 <div className="nc-actions">
                     <button
                         className="nc-btn nc-btn--ghost"

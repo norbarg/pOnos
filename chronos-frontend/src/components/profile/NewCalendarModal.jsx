@@ -145,7 +145,9 @@ export default function NewCalendarModal({
             ))}
           </div>
         </div>
-
+        <div className="ep-hint">
+                              Calendar header color
+                            </div>
         {error && <div className="nc-error" role="alert">{error}</div>}
 
         <div className="nc-actions">

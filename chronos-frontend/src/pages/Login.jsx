@@ -19,7 +19,6 @@ export default function Login() {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
 
-    // куда вести после логина
     const target = useMemo(() => {
         const from = location.state?.from?.pathname;
         const last = localStorage.getItem('nav:last');
@@ -31,7 +30,6 @@ export default function Login() {
         e.preventDefault();
         const res = await dispatch(login(form));
         if (res?.ok) {
-            // подхватываем пользователя, если бэк не прислал его сразу
             await dispatch(fetchMe());
             navigate(target, { replace: true });
         }
@@ -112,6 +110,10 @@ export default function Login() {
                             {error && error !== 'Not authenticated' && (
                                 <div className="error">{String(error)}</div>
                             )}
+
+                            <div className="auth__divider">
+                            <span>Or</span>
+                            </div>
 
                             <p className="muted">
                                 New user?{' '}

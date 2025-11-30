@@ -396,7 +396,6 @@ export default function Profile() {
                             const calColor = hexToRgba(cal.color, 0.8);
                             const calBorder = hexToRgba(calColor, -0.8);
                             return (
-                                // <div key={cal.id} className="calendar-card">
                                 <div
                                     key={cal.id}
                                     className={`calendar-card ${
@@ -407,16 +406,13 @@ export default function Profile() {
                                     role="button"
                                     tabIndex={0}
                                     onClick={(e) => {
-                                        // если меню открыто — НЕ навигируем
                                         if (menuFor === cal.id) return;
-                                        // если клик по кнопке «три точки» — НЕ навигируем
                                         if (
                                             e.target.closest(
                                                 '.calendar-card__menuDots'
                                             )
                                         )
                                             return;
-                                        // если клик внутри поповера меню — НЕ навигируем
                                         if (
                                             e.target.closest('.calMenu') ||
                                             e.target.closest('.calMenu-wrap')
@@ -450,7 +446,6 @@ export default function Profile() {
                                                         e.stopPropagation();
                                                         return;
                                                     }
-                                                    // обычный переход — пусть идёт через navigate state
                                                 }}
                                             >
                                                 {cal.name}

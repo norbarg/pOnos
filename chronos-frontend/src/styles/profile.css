@@ -13,9 +13,9 @@
     --topbar-h: 72px;
 
     --scroll-size: 8px;
-    --scroll-thumb: #96c0be; /* основной цвет ползунка */
-    --scroll-thumb-hover: #5d6294; /* при наведении */
-    --scroll-track: transparent; /* трек почти невидимый */
+    --scroll-thumb: #96c0be;
+    --scroll-thumb-hover: #5d6294;
+    --scroll-track: transparent;
 }
 
 body {
@@ -38,6 +38,7 @@ body {
     margin-right: calc(-1 * var(--p-gap));
     color: #8c8c8c;
 }
+
 .profile__brand {
     width: 50px;
     height: 50px;
@@ -59,9 +60,10 @@ body {
     scrollbar-width: thin;
     scrollbar-color: var(--scroll-thumb) var(--scroll-track);
 }
+
 @supports (height: 100dvh) {
     .profile.profile--threads {
-        height: calc(100dvh - var(--topbar-h)); /* корректные мобильные vh */
+        height: calc(100dvh - var(--topbar-h));
     }
 }
 .profile.profile--threads::-webkit-scrollbar {
@@ -69,16 +71,16 @@ body {
     height: var(--scroll-size);
 }
 .profile.profile--threads:hover::-webkit-scrollbar {
-    width: calc(var(--scroll-size) + 2px); /* чуть шире при ховере */
+    width: calc(var(--scroll-size) + 2px);
 }
 .profile.profile--threads::-webkit-scrollbar-track {
     background: var(--scroll-track);
 }
 .profile.profile--threads:hover::-webkit-scrollbar-thumb {
     background: var(--scroll-thumb);
-    border-radius: 999px; /* «пилюля» */
-    border: 2px solid transparent; /* зазор внутри */
-    background-clip: padding-box; /* чтобы был «кантик» */
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
     min-height: 32px;
 }
@@ -87,9 +89,9 @@ body {
 }
 
 .profilePanel {
-    --card: 300px; /* базова ширина картки */
-    --gap: 24px; /* проміжок між картками */
-    --pad: 30px; /* уже є padding у .profilePanel */
+    --card: 300px;
+    --gap: 24px;
+    --pad: 30px;
 
     background: var(--p-card);
     border: 1px solid rgba(255, 255, 255, 0.06);
@@ -100,7 +102,6 @@ body {
     display: flex;
     flex-direction: column;
 
-    /* Контейнер під 3 картки + 2 проміжки + власні падінги */
     max-width: calc(3 * var(--card) + 2 * var(--gap) + 2 * var(--pad));
     width: 100%;
     margin-inline: auto;
@@ -230,24 +231,22 @@ body {
     justify-items: center;
     align-content: start;
 }
-/* одна карточка — прижать влево (как раньше) */
+
 .profilePanel .calendar-grid:has(> .calendar-card:only-child) {
     justify-content: start;
     justify-items: start;
 }
 
-/* ровно две карточки: занять левый и центральный слоты, 
-   а правый «зарезервировать» невидимым элементом */
 .profilePanel .calendar-grid:has(> .calendar-card:nth-child(2):last-child) {
-    justify-content: center; /* сетка на 3 колонки остаётся по центру контейнера */
-    justify-items: start; /* а реальные карточки внутри своих треков — к левому краю */
+    justify-content: center;
+    justify-items: start;
 }
 .profilePanel
     .calendar-grid:has(> .calendar-card:nth-child(2):last-child)::after {
     content: '';
     width: var(--card);
-    height: 0; /* чтобы не было лишней высоты/скролла */
-    visibility: hidden; /* невидимый, но занимает третий слот */
+    height: 0;
+    visibility: hidden; 
 }
 
 .calendar-card {
@@ -367,18 +366,68 @@ body {
 }
 
 @media (max-width: 820px) {
-    .calendar-grid {
-        grid-template-columns: 1fr;
-    }
-    .calendar-card {
-        width: auto;
-    }
-    .identity-row {
-        align-items: flex-start;
-    }
-    .identity-right {
-        justify-content: flex-start;
-    }
+  .profilePanel {
+    --card: 100%;
+    --gap: 16px;
+    padding: 18px 12px 20px;
+    max-width: 100%;
+  }
+
+  .profilePanel .calendar-grid {
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+    justify-items: stretch;
+  }
+
+  .profilePanel .calendar-card {
+    width: 100%;
+  }
+
+  .identity-row {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .identity-right {
+    justify-content: flex-start;
+  }
+
+  .identity-avatar {
+    width: 96px;
+    height: 96px;
+    box-shadow:
+      0 0 0 3px var(--p-accent),
+      0 6px 18px rgba(0,0,0,.32);
+  }
+
+  .identity-actions .btn {
+    width: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile__title {
+    font-size: 20px;
+    gap: 8px;
+  }
+
+  .profile__brand {
+    width: 40px;
+    height: 40px;
+  }
+
+  .identity-name {
+    font-size: 22px;
+  }
+
+  .calendar-body {
+    padding: 0 14px 14px;
+  }
+
+  .eventChip {
+    padding: 10px 12px;
+  }
 }
 
 .calendar-card,

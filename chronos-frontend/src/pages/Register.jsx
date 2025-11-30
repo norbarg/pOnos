@@ -47,7 +47,6 @@ export default function Register() {
         [form.email, isPasswordLongEnough, isSamePassword]
     );
 
-    // цель после регистрации
     const target = useMemo(() => {
         const from = location.state?.from?.pathname;
         const last = localStorage.getItem('nav:last');
@@ -192,6 +191,10 @@ export default function Register() {
                                     {uiError || String(error)}
                                 </div>
                             )}
+
+                            <div className="auth__divider">
+                            <span>Or</span>
+                            </div>
 
                             <p className="muted">
                                 Already have an account?{' '}
