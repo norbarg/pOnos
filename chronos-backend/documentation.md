@@ -9,7 +9,7 @@
 -   login
 
 ```
-    curl.exe -X POST "http://localhost:8000/auth/login" -H "Content-Type: application/json" -d "{\"email\":\"user3@example.com\",\"password\":\"qwerty123\"}"
+    curl.exe -X POST "http://localhost:8000/auth/login" -H "Content-Type: application/json" -d "{\"email\":\"koliasleshev@gmail.com\",\"password\":\"password123\"}"
 
 ```
 

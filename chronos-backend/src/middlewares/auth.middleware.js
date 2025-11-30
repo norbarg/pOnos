@@ -15,13 +15,16 @@ export async function requireAuth(req, res, next) {
         const user = await User.findById(payload.sub).lean();
         if (!user) return res.status(401).json({ error: 'User not found' });
 
+        // auth.middleware.js
         req.user = {
             id: user._id.toString(),
             email: user.email,
             name: user.name,
-            avatar: user.avatar || null, // <- добавили
-            createdAt: user.createdAt || null, //дата
+            avatar: user.avatar || null,
+            createdAt: user.createdAt || null,
+            countryCode: user.countryCode || 'UA',
         };
+
         next();
     } catch {
         return res.status(401).json({ error: 'Invalid or expired token' });

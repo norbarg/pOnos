@@ -1,8 +1,32 @@
+// chronos-frontend/src/components/Calendar/MonthView.jsx
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // ← ДОБАВИЛИ
 import '../../styles/Calendar.css';
+import catArrangement from '../../assets/cat_arrangement.png';
+import catReminder from '../../assets/cat_reminder.png';
+import catTask from '../../assets/cat_task.png';
+import holidayIcon from '../../assets/holiday_icon.png'; // <-- путь подставь свой
 
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+// иконки только для стандартных категорий
+const ICON_BY_CAT = {
+    arrangement: catArrangement,
+    reminder: catReminder,
+    task: catTask,
+};
+
+// базовые цвета из темы (если у события нет собственного color)
+const CAT_BG = {
+    arrangement: 'var(--arr-bg)',
+    reminder: 'var(--rem-bg)',
+    task: 'var(--task-bg)',
+};
+const CAT_BR = {
+    arrangement: 'var(--arr-br)',
+    reminder: 'var(--rem-br)',
+    task: 'var(--task-br)',
+};
 const toKey = (n) => String(n);
 const toN = (y, m) => y * 12 + m;
 const fromN = (n) => {
@@ -24,7 +48,23 @@ function startOfGrid(y, m) {
     d.setHours(0, 0, 0, 0);
     return d;
 }
+function hexToRgba(hex, alpha = 1) {
+    let c = hex.replace('#', '').trim();
 
+    if (c.length === 3) {
+        c = c
+            .split('')
+            .map((x) => x + x)
+            .join('');
+    }
+
+    const num = parseInt(c, 16);
+    const r = (num >> 16) & 255;
+    const g = (num >> 8) & 255;
+    const b = num & 255;
+
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 // offset внутри скролл-контейнера
 function offsetTopWithin(elContainer, el) {
     if (!elContainer || !el) return 0;
@@ -338,10 +378,24 @@ export default function MonthView({
         return () => el.removeEventListener('scroll', onScroll);
     }, [onMonthChange, onViewportMonthChange]);
 
-    // индекс событий по дню
+    // индекс ОБЫЧНЫХ событий по дню
     const eventsIndex = useMemo(() => {
         const map = new Map();
         for (const ev of events) {
+            if (ev.isHoliday) continue; // праздники — отдельно
+            const d = new Date(ev.start);
+            const key = d.toDateString();
+            if (!map.has(key)) map.set(key, []);
+            map.get(key).push(ev);
+        }
+        return map;
+    }, [events]);
+
+    // индекс ПРАЗДНИКОВ по дню
+    const holidaysIndex = useMemo(() => {
+        const map = new Map();
+        for (const ev of events) {
+            if (!ev.isHoliday) continue;
             const d = new Date(ev.start);
             const key = d.toDateString();
             if (!map.has(key)) map.set(key, []);
@@ -388,11 +442,22 @@ export default function MonthView({
                     >
                         <div className="month-grid">
                             {days.map((d, i) => {
+                                const dayKey = d.toDateString();
+
                                 const inMonth =
                                     d >= monthStart && d <= monthEnd;
+
                                 const list = inMonth
-                                    ? eventsIndex.get(d.toDateString()) || []
+                                    ? eventsIndex.get(dayKey) || []
                                     : [];
+
+                                const holidays = inMonth
+                                    ? holidaysIndex.get(dayKey) || []
+                                    : [];
+
+                                const isHolidayDay = holidays.length > 0;
+                                const mainHoliday = holidays[0] || null;
+
                                 const dateClass =
                                     inMonth && isActiveBlock
                                         ? 'cur'
@@ -411,7 +476,7 @@ export default function MonthView({
                                         key={i}
                                         className={`month-cell ${
                                             inMonth ? 'in' : 'pad'
-                                        }`}
+                                        } ${isHolidayDay ? 'holiday-day' : ''}`}
                                         onClick={() =>
                                             inMonth && onDateSelect?.(d)
                                         }
@@ -442,6 +507,35 @@ export default function MonthView({
                                         >
                                             {inMonth ? d.getDate() : ''}
                                         </div>
+
+                                        {/* 🔹 Название праздника сверху, на одной высоте с числом */}
+                                        {inMonth &&
+                                            isHolidayDay &&
+                                            mainHoliday && (
+                                                <div
+                                                    className="cell-holiday-label"
+                                                    title={holidays
+                                                        .map((h) => h.title)
+                                                        .join(', ')}
+                                                >
+                                                    <span className="cell-holiday-icon">
+                                                        <img
+                                                            src={holidayIcon}
+                                                            alt=""
+                                                        />
+                                                    </span>
+                                                    <span className="cell-holiday-text">
+                                                        {mainHoliday.title ||
+                                                            'Holiday'}
+                                                        {holidays.length > 1 &&
+                                                            ` +${
+                                                                holidays.length -
+                                                                1
+                                                            }`}
+                                                    </span>
+                                                </div>
+                                            )}
+
                                         {inMonth && (
                                             <div
                                                 className="cell-events"
@@ -449,23 +543,126 @@ export default function MonthView({
                                                     e.stopPropagation()
                                                 }
                                             >
-                                                {list
-                                                    .slice(0, 3)
-                                                    .map((e, idx) => (
-                                                        <div
-                                                            className={`pill ${
-                                                                e.category || ''
-                                                            }`}
-                                                            key={idx}
-                                                        >
-                                                            {e.title || 'event'}
-                                                        </div>
-                                                    ))}
-                                                {list.length > 3 && (
-                                                    <div className="more">
-                                                        +{list.length - 3}
-                                                    </div>
-                                                )}
+                                                {(() => {
+                                                    const normalEvents = list;
+                                                    const visible =
+                                                        normalEvents.slice(
+                                                            0,
+                                                            2
+                                                        );
+                                                    const extraCount =
+                                                        normalEvents.length -
+                                                        visible.length;
+
+                                                    return (
+                                                        <>
+                                                            {/* если захочешь "+N" – можно вернуть extraCount */}
+                                                            {visible.map(
+                                                                (e, idx) => {
+                                                                    const baseBg =
+                                                                        e.color ||
+                                                                        CAT_BG[
+                                                                            e
+                                                                                .category
+                                                                        ] ||
+                                                                        'var(--arr-bg)';
+                                                                    const baseBr =
+                                                                        e.color ||
+                                                                        CAT_BR[
+                                                                            e
+                                                                                .category
+                                                                        ] ||
+                                                                        'var(--arr-br)';
+
+                                                                    const isHex =
+                                                                        typeof e.color ===
+                                                                            'string' &&
+                                                                        /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(
+                                                                            e.color
+                                                                        );
+
+                                                                    const bg =
+                                                                        isHex
+                                                                            ? hexToRgba(
+                                                                                  e.color,
+                                                                                  0.8
+                                                                              )
+                                                                            : baseBg;
+                                                                    const br =
+                                                                        isHex
+                                                                            ? hexToRgba(
+                                                                                  e.color,
+                                                                                  0.8
+                                                                              )
+                                                                            : baseBr;
+
+                                                                    const iconSrc =
+                                                                        ICON_BY_CAT[
+                                                                            e
+                                                                                .category
+                                                                        ];
+
+                                                                    return (
+                                                                        <div
+                                                                            className={`pill ${
+                                                                                e.category ||
+                                                                                ''
+                                                                            }`}
+                                                                            key={
+                                                                                idx
+                                                                            }
+                                                                            style={{
+                                                                                cursor: 'pointer',
+                                                                                background:
+                                                                                    bg,
+                                                                                borderColor:
+                                                                                    br,
+                                                                            }}
+                                                                            onClick={(
+                                                                                ev
+                                                                            ) => {
+                                                                                ev.stopPropagation();
+                                                                                if (
+                                                                                    onDateSelect &&
+                                                                                    e.start
+                                                                                ) {
+                                                                                    const d =
+                                                                                        new Date(
+                                                                                            e.start
+                                                                                        );
+                                                                                    d.setHours(
+                                                                                        0,
+                                                                                        0,
+                                                                                        0,
+                                                                                        0
+                                                                                    );
+                                                                                    onDateSelect(
+                                                                                        d
+                                                                                    );
+                                                                                }
+                                                                            }}
+                                                                        >
+                                                                            {iconSrc && (
+                                                                                <span className="pill-icon">
+                                                                                    <img
+                                                                                        src={
+                                                                                            iconSrc
+                                                                                        }
+                                                                                        alt=""
+                                                                                    />
+                                                                                </span>
+                                                                            )}
+                                                                            <span className="pill-label">
+                                                                                {e.title ||
+                                                                                    'event'}
+                                                                            </span>
+                                                                        </div>
+                                                                    );
+                                                                }
+                                                            )}
+                                                        </>
+                                                    );
+                                                })()}
                                             </div>
                                         )}
                                     </div>

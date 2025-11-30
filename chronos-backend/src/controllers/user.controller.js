@@ -6,6 +6,8 @@ import Calendar from '../models/Calendar.js';
 import Event from '../models/Event.js';
 import Invitation from '../models/Invitation.js';
 import EventInvitation from '../models/EventInvitation.js';
+import { ensureUserHolidaysSeed } from '../services/holidays.service.js';
+
 import { AVATARS_PUBLIC_BASE } from '../middlewares/uploadAvatar.middleware.js';
 
 function isValidLogin(v) {
@@ -22,7 +24,6 @@ export async function updateMe(req, res) {
 
     // username из JSON-тела (если передан)
     let usernamePatch;
-    // логин из тела: поддерживаем оба ключа, но пишем в поле name
     let namePatch;
     if ('name' in req.body || 'username' in req.body) {
         const raw = String(
@@ -45,6 +46,19 @@ export async function updateMe(req, res) {
         }
         namePatch = raw || undefined;
     }
+
+    // countryCode из тела (FormData или JSON)
+    let countryPatch;
+    if ('countryCode' in req.body) {
+        const rawCc = String(req.body.countryCode || '')
+            .trim()
+            .toUpperCase();
+        if (!rawCc || !/^[A-Z]{2}$/.test(rawCc)) {
+            return res.status(400).json({ error: 'country-invalid' });
+        }
+        countryPatch = rawCc;
+    }
+
     // если пришёл файл
     let avatarPublicPath;
     if (req.file) {
@@ -55,10 +69,15 @@ export async function updateMe(req, res) {
     const me = await User.findById(uid);
     if (!me) return res.status(404).json({ error: 'not-found' });
 
+    const oldCountry = (me.countryCode || 'UA').toUpperCase();
+
     // собрать патч
     const patch = {};
     if (typeof namePatch !== 'undefined') patch.name = namePatch;
     if (avatarPublicPath) patch.avatar = avatarPublicPath;
+    if (typeof countryPatch !== 'undefined') {
+        patch.countryCode = countryPatch;
+    }
 
     const updated = await User.findByIdAndUpdate(uid, patch, {
         new: true,
@@ -72,6 +91,47 @@ export async function updateMe(req, res) {
             await fs.unlink(abs).catch(() => {});
         } catch {
             /* ignore */
+        }
+    }
+
+    // 🔥 Если клиент ЯВНО прислал countryCode — пересобираем все праздники
+    if (typeof countryPatch !== 'undefined') {
+        try {
+            const ownerId = new mongoose.Types.ObjectId(uid);
+
+            // Находим ВСЕ системные календари праздников пользователя
+            const holidaysCals = await Calendar.find({
+                owner: ownerId,
+                isSystem: true,
+                systemType: 'holidays',
+            })
+                .select({ _id: 1 })
+                .lean();
+
+            const calIds = holidaysCals.map((c) => c._id);
+
+            if (calIds.length) {
+                // Удаляем все события в этих календарях
+                await Event.deleteMany({
+                    calendar: { $in: calIds },
+                });
+
+                // И сами календари праздников
+                await Calendar.deleteMany({ _id: { $in: calIds } });
+            }
+
+            // Создаём календарь и события для НОВОГО региона
+            await ensureUserHolidaysSeed(uid, countryPatch);
+
+            console.log(
+                '[updateMe] holidays re-synced from',
+                oldCountry,
+                'to',
+                countryPatch
+            );
+        } catch (e) {
+            console.error('updateMe.region-holidays.error:', e);
+            // профиль уже обновлён, поэтому ответ пользователю не ломаем
         }
     }
 

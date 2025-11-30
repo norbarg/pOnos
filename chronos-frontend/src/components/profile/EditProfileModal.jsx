@@ -7,6 +7,14 @@ import uploadCloud from '../../assets/upload_cloud.png';
 
 const USER_RE = /^[a-z0-9._-]{3,32}$/;
 
+const COUNTRY_OPTIONS = [
+    { code: 'UA', label: 'Ukraine' },
+    { code: 'PL', label: 'Poland' },
+    { code: 'DE', label: 'Germany' },
+    { code: 'US', label: 'United States' },
+    // добавишь свои
+];
+
 export default function EditProfileModal({
     open,
     me,
@@ -22,6 +30,7 @@ export default function EditProfileModal({
     const [askDelete, setAskDelete] = useState(false);
     const inputRef = useRef(null);
     const fileRef = useRef(null);
+    const [countryCode, setCountryCode] = useState('UA');
 
     const currentAvatar = useMemo(() => {
         if (!me) return null;
@@ -34,6 +43,7 @@ export default function EditProfileModal({
         if (open) {
             document.body.classList.add('modal-open');
             setUsername(me?.username || me?.name || '');
+            setCountryCode((me?.countryCode || 'UA').toUpperCase());
             setTimeout(() => inputRef.current?.focus(), 0);
         } else {
             document.body.classList.remove('modal-open');
@@ -43,9 +53,10 @@ export default function EditProfileModal({
             setErr('');
             setAskDelete(false);
             setLoading(false);
+            setCountryCode('UA');
         }
         return () => document.body.classList.remove('modal-open');
-    }, [open]);
+    }, [open, me]);
 
     function cleanupPreview() {
         if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview);
@@ -72,12 +83,23 @@ export default function EditProfileModal({
         return username.trim().toLowerCase() !== base;
     }, [username, me]);
 
+    const countryChanged = useMemo(() => {
+        const base = (me?.countryCode || 'UA').toUpperCase();
+        return countryCode.toUpperCase() !== base;
+    }, [countryCode, me]);
+
     const canSubmit = useMemo(() => {
         const wantsName = nameChanged && username.trim().length > 0;
         const nameValid =
             !wantsName || USER_RE.test(username.trim().toLowerCase());
-        return !loading && nameValid && (wantsName || !!file);
-    }, [loading, nameChanged, username, file]);
+
+        const wantsCountry = countryChanged;
+
+        // можно сохранять, если:
+        // - логин валиден
+        // - и есть хоть одно изменение: имя, аватар, страна
+        return !loading && nameValid && (wantsName || !!file || wantsCountry);
+    }, [loading, nameChanged, username, file, countryChanged]);
 
     async function submit() {
         if (!canSubmit) return;
@@ -87,9 +109,13 @@ export default function EditProfileModal({
             const fd = new FormData();
             if (nameChanged) fd.append('name', username.trim().toLowerCase());
             if (file) fd.append('avatar', file);
+            if (countryChanged)
+                fd.append('countryCode', countryCode.toUpperCase());
+
             const { data } = await api.patch('/users/me', fd, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
+
             onUpdated?.(data?.user);
             onClose?.();
         } catch (e) {
@@ -99,6 +125,8 @@ export default function EditProfileModal({
                 setErr('This username is already taken.');
             } else if (code === 400 && msg === 'username-invalid') {
                 setErr('Username must be 3–32 chars: a–z, 0–9, . _ -');
+            } else if (code === 400 && msg === 'country-invalid') {
+                setErr('Invalid country code.');
             } else {
                 setErr('Failed to update profile. Try again.');
             }
@@ -157,6 +185,24 @@ export default function EditProfileModal({
                             />
                             <div className="ep-hint">
                                 Allowed: a–z, 0–9, . _ - (3–32)
+                            </div>
+                        </div>
+                        <div className="ep-field">
+                            <label>Region</label>
+                            <select
+                                className="ep-input ep-select"
+                                value={countryCode}
+                                onChange={(e) => setCountryCode(e.target.value)}
+                                disabled={loading}
+                            >
+                                <option value="UA">Ukraine</option>
+                                <option value="PL">Poland</option>
+                                <option value="DE">Germany</option>
+                                <option value="US">United States</option>
+                                <option value="GB">United Kingdom</option>
+                            </select>
+                            <div className="ep-hint">
+                                Used for national holidays in your calendar.
                             </div>
                         </div>
 

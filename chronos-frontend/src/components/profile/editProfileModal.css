@@ -1,127 +1,206 @@
 /* chronos-frontend/src/components/profile/editProfileModal.css */
-.ep-overlay{
-  position: fixed; inset: 0; z-index: 1000;
-  background: rgba(10,12,18,.55);
-  backdrop-filter: blur(2px);
-  display: grid; place-items: center;
-  padding: 24px;
+.ep-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(10, 12, 18, 0.55);
+    backdrop-filter: blur(2px);
+    display: grid;
+    place-items: center;
+    padding: 24px;
 }
-.ep-description { color:#8C8C8C;}
-
-.ep-modal{
-  width: min(596px, 96vw);
-  background: #151726;
-  color: #E8EEF7;
-  border-radius: 20px;
-  box-shadow: 0 30px 80px rgba(0,0,0,.5);
-  padding: 30px;
-  border: 2px solid #2C2D4C;
-  font-family: 'League Spartan', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+.ep-description {
+    color: #8c8c8c;
 }
 
-.ep-grid{
-  display: grid;
-  grid-template-columns: 1fr 360px;
-  gap: 28px;
-  align-items: start;
-}
-
-.ep-title{
-     margin: 0;
-     font-size: 30px;
-     font-weight: 600;
-     color: #96C0BE;
-}
-
-.ep-field{ margin-top: 18px; }
-.ep-field > label{
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: #96C0BE;
-    font-size: 20px;
-}
-.ep-input{
-  width:100%; height:52px; border-radius: 16px;
-  background:#2a2d45; border:1px solid #303553;
-  color:#8C8C8C; outline:none; padding:0 16px; font-size:18px;
-  font-family: 'League Spartan', system-ui, -apple-system, Segoe UI, Roboto,
+.ep-modal {
+    width: min(596px, 96vw);
+    background: #151726;
+    color: #e8eef7;
+    border-radius: 20px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+    padding: 30px;
+    border: 2px solid #2c2d4c;
+    font-family: 'League Spartan', system-ui, -apple-system, Segoe UI, Roboto,
         Arial, sans-serif;
 }
 
-.ep-input::placeholder{ color:#7e87a6; }
-.ep-hint{ margin-top:11px; font-size:13px; color:#9aa3bd; }
-
-.ep-error{
-  margin-top: 14px;
-  color: #FFD3EC; font-weight: 700;
+.ep-grid {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 28px;
+    align-items: start;
 }
 
-.ep-actions{
-  display:flex; justify-content:space-between; gap:12px;
-  margin-top: 34px;
+.ep-title {
+    margin: 0;
+    font-size: 30px;
+    font-weight: 600;
+    color: #96c0be;
+}
+.ep-select {
+    background: #2a2d45;
+    border-radius: 16px;
+    border: 1px solid #303553;
+    color: #e8eef7;
+    height: 52px;
+    padding: 0 16px;
+    font-size: 18px;
+    font-family: 'League Spartan', system-ui, -apple-system, Segoe UI, Roboto,
+        Arial, sans-serif;
 }
 
-.ep-btn{
-  appearance:none; border:0; cursor:pointer;
-  border-radius: 12px; padding: 12px 20px; line-height:1;
-  font-weight:700; line-height: 1;
-  font-size: 15px;
-  font-family: 'League Spartan', system-ui, -apple-system, Segoe UI, Roboto,
-Arial, sans-serif;
+.ep-field {
+    margin-top: 18px;
+}
+.ep-field > label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #96c0be;
+    font-size: 20px;
+}
+.ep-input {
+    width: 100%;
+    height: 52px;
+    border-radius: 16px;
+    background: #2a2d45;
+    border: 1px solid #303553;
+    color: #8c8c8c;
+    outline: none;
+    padding: 0 16px;
+    font-size: 18px;
+    font-family: 'League Spartan', system-ui, -apple-system, Segoe UI, Roboto,
+        Arial, sans-serif;
 }
 
-.ep-btn1{
-  appearance:none; border:0; cursor:pointer;
-  border-radius: 12px; padding: 12px 20px; line-height:1;
-  font-weight:700; line-height: 1;
-  font-size: 15px;
-  font-family: 'League Spartan', system-ui, -apple-system, Segoe UI, Roboto,
-Arial, sans-serif;
-white-space: nowrap;
+.ep-input::placeholder {
+    color: #7e87a6;
+}
+.ep-hint {
+    margin-top: 11px;
+    font-size: 13px;
+    color: #9aa3bd;
 }
 
-.ep-btn--primary{
-  background:#96C0BE; color:#FFFFFF; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+.ep-error {
+    margin-top: 14px;
+    color: #ffd3ec;
+    font-weight: 700;
 }
 
-.ep-btn--primary[disabled]{ opacity:.6; cursor:not-allowed; }
-.ep-btn--danger{
-  background:#D65050; color:#FFFFFF; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+.ep-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 34px;
 }
 
-.ep-btn--danger.is-ask{ background:#b74444; }
-
-.ep-right{ display:flex; justify-content:center; align-items:flex-start; }
-.ep-avatarWrap{ position:relative; width: 280px; height: 280px; }
-.ep-avatar{
-  width:100%; height:100%; border-radius:999px; object-fit:cover;
-  background:#eceff3;
+.ep-btn {
+    appearance: none;
+    border: 0;
+    cursor: pointer;
+    border-radius: 12px;
+    padding: 12px 20px;
+    line-height: 1;
+    font-weight: 700;
+    line-height: 1;
+    font-size: 15px;
+    font-family: 'League Spartan', system-ui, -apple-system, Segoe UI, Roboto,
+        Arial, sans-serif;
 }
-.ep-avatar--placeholder{
-  background:#eceff3 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 24 24' fill='none' stroke='%239aa3bd' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 21a8 8 0 0 0-16 0'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E") no-repeat center 45%;
-  background-size: 44%;
-  border-radius:999px;
+
+.ep-btn1 {
+    appearance: none;
+    border: 0;
+    cursor: pointer;
+    border-radius: 12px;
+    padding: 12px 20px;
+    line-height: 1;
+    font-weight: 700;
+    line-height: 1;
+    font-size: 15px;
+    font-family: 'League Spartan', system-ui, -apple-system, Segoe UI, Roboto,
+        Arial, sans-serif;
+    white-space: nowrap;
 }
 
-.ep-uploadBtn{
-  position:absolute; right: 6px; bottom: 6px;
-  width: 60px; height: 60px; border-radius: 999px;
-  background: #2C2D4C; border: 2px solid #2C2D4C;
-  display:grid; place-items:center; cursor:pointer;
-  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+.ep-btn--primary {
+    background: #96c0be;
+    color: #ffffff;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
 }
-.ep-uploadBtn img{ width: 50px; height: 50px; display:block; }
 
-body.modal-open{ overflow:hidden; }
+.ep-btn--primary[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+.ep-btn--danger {
+    background: #d65050;
+    color: #ffffff;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
 
-.ep-divider{
-  width: 137px;;
-  height:6px;                
-  border-radius:999px;       
-  background: #FFD3EC;
-  opacity:.9;
-  border:1px solid rgba(255,255,255,.06);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
-  margin:10px 0;           
+.ep-btn--danger.is-ask {
+    background: #b74444;
+}
+
+.ep-right {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+.ep-avatarWrap {
+    position: relative;
+    width: 280px;
+    height: 280px;
+}
+.ep-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 999px;
+    object-fit: cover;
+    background: #eceff3;
+}
+.ep-avatar--placeholder {
+    background: #eceff3
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 24 24' fill='none' stroke='%239aa3bd' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 21a8 8 0 0 0-16 0'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E")
+        no-repeat center 45%;
+    background-size: 44%;
+    border-radius: 999px;
+}
+
+.ep-uploadBtn {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    width: 60px;
+    height: 60px;
+    border-radius: 999px;
+    background: #2c2d4c;
+    border: 2px solid #2c2d4c;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.ep-uploadBtn img {
+    width: 50px;
+    height: 50px;
+    display: block;
+}
+
+body.modal-open {
+    overflow: hidden;
+}
+
+.ep-divider {
+    width: 137px;
+    height: 6px;
+    border-radius: 999px;
+    background: #ffd3ec;
+    opacity: 0.9;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    margin: 10px 0;
 }

@@ -8,11 +8,11 @@ const { Schema, model, Types } = mongoose;
 const categorySchema = new Schema(
     {
         title: { type: String, required: true, trim: true },
-        color: { type: String, required: true, trim: true }, // HEX
+        color: { type: String, required: true, trim: true },
         user: { type: Types.ObjectId, ref: 'User', default: null, index: true },
         builtInKey: {
             type: String,
-            enum: ['task', 'reminder', 'arrangement', null],
+            enum: ['task', 'reminder', 'arrangement', 'holiday', null],
             default: null,
             index: true,
         },

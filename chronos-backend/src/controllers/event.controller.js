@@ -1,3 +1,4 @@
+// chronos-backend/src/controllers/event.controller.js
 import mongoose from 'mongoose';
 import rrulePkg from 'rrule';
 import User from '../models/User.js';
@@ -124,6 +125,7 @@ export async function createEvent(req, res) {
 }
 
 /* LIST (by calendar) + filters & expand */
+// 7) обычный (не развернутый) режим
 export async function listCalendarEvents(req, res) {
     const uid = req.user.id;
     const { calId } = req.params;
@@ -131,6 +133,7 @@ export async function listCalendarEvents(req, res) {
 
     const cal = await Calendar.findById(calId).lean();
     if (!cal) return res.status(404).json({ error: 'calendar not found' });
+
     const isOwner = String(cal.owner) === uid;
     const isMember =
         Array.isArray(cal.members) &&
@@ -138,22 +141,54 @@ export async function listCalendarEvents(req, res) {
     if (!isOwner && !isMember)
         return res.status(403).json({ error: 'forbidden' });
 
-    const q = {
-        $or: [{ calendar: cal._id }, { 'placements.calendar': cal._id }],
+    const baseQuery = {
+        $or: [
+            // 1) события, у которых "родной" календарь = этот
+            { calendar: cal._id },
+
+            // 2) события, размещённые в этом календаре для ТЕКУЩЕГО пользователя
+            {
+                'placements.calendar': cal._id,
+                'placements.user': uid,
+            },
+        ],
     };
-    if (from || to) {
-        q.start = {};
-        if (from) q.start.$gte = parseISO(from);
-        if (to) q.start.$lt = parseISO(to);
-    }
+
+    const allEvents = await Event.find(baseQuery).sort({ start: 1 }).lean();
+
+    let list = allEvents;
     if (category) {
         const ids = String(category)
             .split(',')
             .filter((x) => mongoose.isValidObjectId(x));
-        if (ids.length) q.category = { $in: ids };
+        if (ids.length) {
+            const idSet = new Set(ids.map(String));
+            list = list.filter((e) => idSet.has(String(e.category)));
+        }
     }
 
-    const list = await Event.find(q).sort({ start: 1 }).lean();
+    let fromDate = null;
+    let toDate = null;
+    if (from) fromDate = parseISO(from);
+    if (to) toDate = parseISO(to);
+
+    if (fromDate || toDate) {
+        list = list.filter((e) => {
+            const hasRec = e.recurrence && e.recurrence.rrule;
+            if (hasRec) {
+                if (e.recurrence.until && fromDate) {
+                    const until = parseISO(e.recurrence.until);
+                    if (until < fromDate) return false;
+                }
+                return true;
+            }
+
+            const st = new Date(e.start);
+            if (fromDate && st < fromDate) return false;
+            if (toDate && st >= toDate) return false;
+            return true;
+        });
+    }
 
     const catIds = [...new Set(list.map((e) => String(e.category)))];
     const cats = await Category.find({ _id: { $in: catIds } }).lean();
@@ -169,23 +204,22 @@ export async function listCalendarEvents(req, res) {
         ])
     );
 
-    if (expand && Number(expand) === 1 && (from || to)) {
-        const rangeFrom = from
-            ? parseISO(from)
-            : new Date('1970-01-01T00:00:00.000Z');
-        const rangeTo = to
-            ? parseISO(to)
-            : new Date('2999-01-01T00:00:00.000Z');
+    if (expand && Number(expand) === 1 && (fromDate || toDate)) {
+        const rangeFrom = fromDate || new Date('1970-01-01T00:00:00.000Z');
+        const rangeTo = toDate || new Date('2999-01-01T00:00:00.000Z');
 
         const expanded = [];
         for (const e of list) {
             if (e.recurrence && e.recurrence.rrule) {
                 let rule;
                 try {
-                    rule = RRule.fromString(e.recurrence.rrule);
+                    const baseOpts = RRule.parseString(e.recurrence.rrule);
+                    baseOpts.dtstart = new Date(e.start);
+                    rule = new RRule(baseOpts);
                 } catch {
                     continue;
                 }
+
                 const dates = rule.between(rangeFrom, rangeTo, true);
                 for (const dt of dates) {
                     const dur = new Date(e.end) - new Date(e.start) || 0;
@@ -348,14 +382,21 @@ export async function listParticipants(req, res) {
     const uid = req.user.id;
 
     const cal = await Calendar.findById(ev.calendar).lean();
+    if (!cal) {
+        return res.status(404).json({ error: 'calendar not found' });
+    }
+
     const isOwner = String(ev.owner) === uid;
-    const isCalOwner = cal && String(cal.owner) === uid;
+    const isCalOwner = String(cal.owner) === uid;
     const isParticipant = (ev.participants || []).some(
         (p) => String(p) === uid
     );
+
     if (!isOwner && !isCalOwner && !isParticipant) {
         return res.status(403).json({ error: 'forbidden' });
     }
+
+    const canManageFlag = canManage(ev, uid, cal); // ← кто может редактировать/удалять
 
     const ids = [String(ev.owner), ...ev.participants.map(String)];
     const users = await User.find({ _id: { $in: ids } })
@@ -374,7 +415,10 @@ export async function listParticipants(req, res) {
         placementCalendar: placementsByUser.get(String(u._id)) || null,
     }));
 
-    return res.json({ participants: out });
+    return res.json({
+        participants: out,
+        canManage: canManageFlag,
+    });
 }
 
 /** Добавить участника (owner/owner-calendar) */
@@ -530,30 +574,84 @@ export async function leaveEvent(req, res) {
 
 /* === INVITES BY EMAIL (EVENT) === */
 export async function inviteByEmail(req, res) {
-    const ev = req.event;
-    const uid = req.user.id;
-    const cal = await Calendar.findById(ev.calendar).lean();
-    if (!canManage(ev, uid, cal))
-        return res.status(403).json({ error: 'forbidden' });
+    try {
+        const ev = req.event;
+        const uid = req.user.id;
+        const cal = await Calendar.findById(ev.calendar).lean();
+        if (!canManage(ev, uid, cal)) {
+            return res.status(403).json({ error: 'forbidden' });
+        }
 
-    let { email } = req.body || {};
-    if (!email) return res.status(400).json({ error: 'email-required' });
-    email = String(email).trim().toLowerCase();
+        let { email } = req.body || {};
+        if (!email) {
+            return res.status(400).json({ error: 'email-required' });
+        }
 
-    const inv = await createEventInvite({
-        eventId: ev._id.toString(),
-        inviterId: uid,
-        email,
-    });
-    return res.json({
-        ok: true,
-        invite: {
-            id: inv._id.toString(),
-            email: inv.email,
-            status: inv.status,
-            expiresAt: inv.expiresAt,
-        },
-    });
+        const raw = String(email).trim();
+        if (!raw) {
+            return res.status(400).json({ error: 'email-required' });
+        }
+
+        const emailRe = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+        let targetEmail = raw.toLowerCase();
+        let mode = 'email';
+        let targetUser = null;
+
+        // 🔹 если это НЕ email — считаем, что это ник / имя
+        if (!emailRe.test(targetEmail)) {
+            const lookup = raw.toLowerCase();
+
+            targetUser = await User.findOne({
+                $or: [
+                    { email: lookup }, // вдруг ввели именно email, но без регистра
+                    { name: raw }, // точное совпадение name
+                    // если у тебя есть username, раскомментируй:
+                    // { username: raw },
+                ],
+            }).lean();
+
+            if (!targetUser) {
+                return res.status(404).json({ error: 'user-not-found' });
+            }
+
+            // берём настоящий email из юзера
+            targetEmail = String(targetUser.email || '').toLowerCase();
+            if (!targetEmail) {
+                return res.status(400).json({ error: 'user-has-no-email' });
+            }
+
+            mode = 'user';
+        }
+
+        // 🔹 тут ВСЕГДА создаём e-mail-инвайт (и отправляем письмо)
+        const inv = await createEventInvite({
+            eventId: ev._id.toString(),
+            inviterId: uid,
+            email: targetEmail,
+        });
+
+        return res.json({
+            ok: true,
+            mode, // 'email' или 'user'
+            user: targetUser
+                ? {
+                      id: targetUser._id.toString(),
+                      email: targetUser.email,
+                      name: targetUser.name,
+                  }
+                : null,
+            invite: {
+                id: inv._id.toString(),
+                email: inv.email,
+                status: inv.status,
+                expiresAt: inv.expiresAt,
+            },
+        });
+    } catch (err) {
+        console.error('inviteByEmail error:', err);
+        return res.status(500).json({ error: 'failed-to-send-invite' });
+    }
 }
 
 export async function listEventInvites(req, res) {
