@@ -13,17 +13,6 @@
     --slider-shadow: 0 6px 18px rgba(255, 179, 211, 0.55);
 }
 
-html[data-theme='light'] {
-    --side-bg: #f7f8fb;
-    --side-border: rgba(0, 0, 0, 0.06);
-    --icon-filter: contrast(0.9) brightness(0.2) invert(1);
-    --icon-hover-filter: brightness(0.95)
-        drop-shadow(0 2px 6px rgba(0, 0, 0, 0.15));
-    --avatar-bg: #e9ecf7;
-    --slider-bg: #ff89c1;
-    --slider-shadow: 0 6px 18px rgba(255, 137, 193, 0.45);
-}
-
 .side {
     position: sticky;
     top: 0;

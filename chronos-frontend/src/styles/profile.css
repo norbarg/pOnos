@@ -16,6 +16,50 @@
     --scroll-thumb: #96c0be;
     --scroll-thumb-hover: #5d6294;
     --scroll-track: transparent;
+
+    /* новые токены для профиля (DARK по умолчанию) */
+    --p-topbar-bg: #2c2d4c;
+    --p-topbar-text: #8c8c8c;
+    --p-panel-border: rgba(255, 255, 255, 0.06);
+    --p-card-border: rgba(255, 255, 255, 0.06);
+    --p-btn-bg: #24253b;
+    --p-btn-text: #ffffff;
+    --p-btn-border: #0f1220;
+    --p-header-text: #ffffff;
+    --p-link-on-card: #ffffff;
+    --p-avatar-bg: #1b1e2d;
+}
+
+/* ===== LIGHT THEME для профиля ===== */
+html[data-theme='light'] {
+    --p-bg: #f7f8fb;
+    --p-panel: #ffffff;
+    --p-divider: #bbbac0;
+    --p-card: #ffffff;
+    --p-card-hover: #eef2ff;
+    --p-text: #111827;
+    --p-muted: #6b7280;
+    --p-accent: #96c0be;
+    --p-accent-2: #ffb3d3;
+
+    --p-topbar-bg: #ffffff;
+    --p-topbar-text: #8c8c8c;
+
+    --p-panel-border: rgba(148, 163, 184, 0.6);
+    --p-card-border: rgba(148, 163, 184, 0.6);
+    --p-btn-bg: #96c0be;
+    --p-btn-text: #f9fafb;
+    --p-btn-border: #96c0be;
+    --p-header-text: #111827;
+    --p-link-on-card: #ffffff;
+
+    --p-avatar-bg: #e5e7eb;
+
+    --scroll-thumb: #cbd5f5;
+    --scroll-thumb-hover: #9ca3af;
+    --scroll-track: transparent;
+
+    --p-overlay-bg: rgba(15, 23, 42, 0.35);
 }
 
 body {
@@ -30,13 +74,13 @@ body {
     font-weight: 700;
     border-bottom: 2px solid var(--p-divider);
     position: relative;
-    background: #2c2d4c;
+    background: var(--p-topbar-bg);
     display: flex;
     align-items: center;
     gap: 12px;
     margin-left: calc(-1 * var(--p-gap));
     margin-right: calc(-1 * var(--p-gap));
-    color: #8c8c8c;
+    color: var(--p-topbar-text);
 }
 
 .profile__brand {
@@ -137,7 +181,7 @@ body {
     height: 150px;
     border-radius: 50%;
     object-fit: cover;
-    background: #1b1e2d;
+    background: var(--p-avatar-bg);
     box-shadow: 0 0 0 4px var(--p-accent), 0 10px 30px rgba(0, 0, 0, 0.35);
     display: grid;
     place-items: center;
@@ -174,23 +218,24 @@ body {
     margin: 0;
     font-size: 22px;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--p-text);
 }
 
 .btn {
     appearance: none;
     border: 0;
     cursor: pointer;
-    background: #24253b;
-    color: #ffffff;
+    background: var(--p-btn-bg);
+    color: var(--p-btn-text);
     font-weight: 600;
     border-radius: 12px;
     padding: 10px 14px;
     line-height: 1;
     font-family: 'League Spartan', system-ui, -apple-system, Segoe UI, Roboto,
         Arial, sans-serif;
-    border: 1px solid #0f1220;
+    border: 1px solid var(--p-btn-border);
 }
+
 .btn.btn--small {
     padding: 12px 20px;
     font-size: 18px;
@@ -256,7 +301,7 @@ body {
     border-radius: 16px;
     padding: 0;
     box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--p-card-border);
     transition: transform 0.15s ease, background-color 0.15s ease,
         box-shadow 0.15s ease;
     overflow: visible;
@@ -265,7 +310,7 @@ body {
 
 .calendar-card:hover {
     transform: translateY(-2px);
-    background: #24253b;
+    background: var(--p-card-hover);
     box-shadow: 0 20px 44px rgba(0, 0, 0, 0.32);
 }
 
@@ -283,7 +328,7 @@ body {
     letter-spacing: 0.2px;
 }
 .calendar-header-profile__title a {
-    color: #ffffff;
+    color: var(--p-link-on-card);
     text-decoration: none;
 }
 

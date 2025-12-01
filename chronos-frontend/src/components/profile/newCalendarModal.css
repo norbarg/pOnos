@@ -1,4 +1,3 @@
-/* chronos-frontend/src/components/profile/newCalendarModal.css */
 .nc-overlay {
     position: fixed;
     inset: 0;
@@ -9,13 +8,14 @@
     place-items: center;
     padding: 24px;
 }
+
 .nc-modal {
     width: min(565px, 96vw);
-    background: #151726;
-    color: #e8eef7;
+    background: var(--p-panel);
+    color: var(--p-text);
     border-radius: 20px;
     box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
-    border: 2px solid #2c2d4c;
+    border: 2px solid var(--p-panel-border);
     font-family: 'League Spartan', system-ui, -apple-system, Segoe UI, Roboto,
         Arial, sans-serif;
     padding: 30px;
@@ -28,95 +28,61 @@
     align-items: end;
     margin-bottom: 18px;
 }
+
 .nc-title {
     margin: 0;
     font-size: 30px;
     font-weight: 600;
-    color: #96c0be;
+    color: var(--p-accent);
 }
 
 .nc-title1 {
     margin: 0;
     font-size: 30px;
     font-weight: 600;
-    color: #ffd3ec;
+    color: var(--p-accent-2);
 }
 
-.nc-titleInput {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 34px;
-    font-weight: 700;
-    color: #9aa3bd;
-}
-
-.nc-titleInput .nc-caret {
-    display: inline-block;
-    width: 6px;
-    height: 32px;
-    background: #ffd3ec;
-    border-radius: 999px;
-    margin: 0 -10px;
-}
-
-.nc-titleInput1 .nc-caret1 {
-    display: inline-block;
-    width: 6px;
-    height: 32px;
-    background: #96c0be;
-    border-radius: 999px;
-    margin: 0 -10px;
-}
-
+.nc-titleInput,
 .nc-titleInput1 {
     display: flex;
     align-items: center;
     gap: 10px;
     font-size: 34px;
     font-weight: 700;
-    color: #9aa3bd;
+    color: var(--p-muted);
 }
 
-.nc-titleInput {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 34px;
-    font-weight: 700;
-    color: #9aa3bd;
+.nc-titleInput .nc-caret,
+.nc-titleInput1 .nc-caret1 {
+    display: inline-block;
+    width: 6px;
+    height: 32px;
+    background: var(--p-accent-2);
+    border-radius: 999px;
+    margin: 0 -10px;
 }
 
+.nc-titleInput1 .nc-caret1 {
+    background: var(--p-accent);
+}
+
+.nc-titleInput input,
 .nc-titleInput1 input {
     flex: 1;
     background: transparent;
     border: 0;
     outline: none;
-    color: #8c8c8c;
+    color: var(--p-text);
     font: inherit;
     font-size: 30px;
     margin: 0 10px;
     font-weight: 650;
 }
 
-.nc-titleInput input {
-    flex: 1;
-    background: transparent;
-    border: 0;
-    outline: none;
-    color: #8c8c8c;
-    font: inherit;
-    font-size: 30px;
-    margin: 0 10px;
-    font-weight: 650;
-}
-
+.nc-titleInput input::placeholder,
 .nc-titleInput1 input::placeholder {
-    color: #8c8c8c;
-    font-size: 30px;
-}
-.nc-titleInput input::placeholder {
-    color: #8c8c8c;
+    color: var(--p-muted);
     font-size: 30px;
 }
 
@@ -127,7 +93,7 @@
     display: block;
     margin-bottom: 8px;
     font-weight: 600;
-    color: #96c0be;
+    color: var(--p-accent);
     font-size: 20px;
 }
 .nc-field input {
@@ -135,13 +101,13 @@
     background: transparent;
     border: 0;
     outline: none;
-    color: #8c8c8c;
+    color: var(--p-text);
     font: inherit;
     font-size: 20px;
     margin: 0 10px;
 }
 .nc-field input::placeholder {
-    color: #8c8c8c;
+    color: var(--p-muted);
 }
 
 .nc-swatches {
@@ -153,8 +119,8 @@
     width: 36px;
     height: 28px;
     border-radius: 999px;
-    background: #24263b;
-    border: 2px solid #ffd3ec;
+    background: var(--p-card);
+    border: 2px solid var(--p-accent-2);
     display: grid;
     place-items: center;
     cursor: pointer;
@@ -171,13 +137,13 @@
 .nc-swatch.is-active {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
     transform: translateY(-2px);
-    border-color: #96c0be;
+    border-color: var(--p-accent);
 }
 
 .nc-error {
     margin-top: -4px;
     margin-bottom: 10px;
-    color: #ffd3ec;
+    color: var(--p-accent-2);
     font-weight: 700;
 }
 
@@ -187,19 +153,19 @@
     gap: 12px;
     margin-top: 6px;
 }
+
 .nc-btn {
     appearance: none;
     border: 0;
     cursor: pointer;
-    background: #96c0be;
+    background: var(--p-accent);
     color: #ffffff;
     font-weight: 700;
     border-radius: 12px;
     padding: 12px 20px;
     line-height: 1;
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-    font-family: 'League Spartan', system-ui, -apple-system, Segoe UI, Roboto,
-        Arial, sans-serif;
+    font-family: inherit;
     font-size: 15px;
 }
 .nc-btn[disabled] {
@@ -208,8 +174,8 @@
 }
 .nc-btn--ghost {
     background: transparent;
-    color: #e8eef7;
-    border: 1px solid #ffd3ec;
+    color: var(--p-text);
+    border: 1px solid var(--p-accent-2);
     box-shadow: none;
 }
 

@@ -201,7 +201,7 @@ export default function Sidebar() {
                 {/* низ */}
                 <div className="side__bottom">
                     <button
-                        className="side__tool"
+                        className="side__tool side__tool--theme"
                         onClick={onToggleTheme}
                         title="toggle theme"
                     >
