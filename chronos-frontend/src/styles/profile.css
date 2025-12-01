@@ -54,6 +54,7 @@ body {
     min-height: calc(100vh - var(--topbar-h));
     display: flex;
     flex-direction: column;
+    align-items: center;
 
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -104,7 +105,6 @@ body {
 
     max-width: calc(3 * var(--card) + 2 * var(--gap) + 2 * var(--pad));
     width: 100%;
-    margin-inline: auto;
 }
 
 .identity-row {
@@ -246,7 +246,7 @@ body {
     content: '';
     width: var(--card);
     height: 0;
-    visibility: hidden; 
+    visibility: hidden;
 }
 
 .calendar-card {
@@ -366,68 +366,66 @@ body {
 }
 
 @media (max-width: 820px) {
-  .profilePanel {
-    --card: 100%;
-    --gap: 16px;
-    padding: 18px 12px 20px;
-    max-width: 100%;
-  }
+    .profilePanel {
+        --card: 100%;
+        --gap: 16px;
+        padding: 18px 12px 20px;
+        max-width: 100%;
+    }
 
-  .profilePanel .calendar-grid {
-    grid-template-columns: 1fr;
-    justify-content: stretch;
-    justify-items: stretch;
-  }
+    .profilePanel .calendar-grid {
+        grid-template-columns: 1fr;
+        justify-content: stretch;
+        justify-items: stretch;
+    }
 
-  .profilePanel .calendar-card {
-    width: 100%;
-  }
+    .profilePanel .calendar-card {
+        width: 100%;
+    }
 
-  .identity-row {
-    flex-direction: column-reverse;
-    align-items: flex-start;
-    gap: 12px;
-  }
+    .identity-row {
+        flex-direction: column-reverse;
+        align-items: flex-start;
+        gap: 12px;
+    }
 
-  .identity-right {
-    justify-content: flex-start;
-  }
+    .identity-right {
+        justify-content: flex-start;
+    }
 
-  .identity-avatar {
-    width: 96px;
-    height: 96px;
-    box-shadow:
-      0 0 0 3px var(--p-accent),
-      0 6px 18px rgba(0,0,0,.32);
-  }
+    .identity-avatar {
+        width: 96px;
+        height: 96px;
+        box-shadow: 0 0 0 3px var(--p-accent), 0 6px 18px rgba(0, 0, 0, 0.32);
+    }
 
-  .identity-actions .btn {
-    width: auto;
-  }
+    .identity-actions .btn {
+        width: auto;
+    }
 }
 
 @media (max-width: 480px) {
-  .profile__title {
-    font-size: 20px;
-    gap: 8px;
-  }
+    .profile__title {
+        font-size: 20px;
+        gap: 8px;
+    }
 
-  .profile__brand {
-    width: 40px;
-    height: 40px;
-  }
+    .profile__brand {
+        width: 40px;
+        height: 40px;
+    }
 
-  .identity-name {
-    font-size: 22px;
-  }
+    .identity-name {
+        font-size: 22px;
+    }
 
-  .calendar-body {
-    padding: 0 14px 14px;
-  }
+    .calendar-body {
+        padding: 0 14px 14px;
+    }
 
-  .eventChip {
-    padding: 10px 12px;
-  }
+    .eventChip {
+        padding: 10px 12px;
+    }
 }
 
 .calendar-card,

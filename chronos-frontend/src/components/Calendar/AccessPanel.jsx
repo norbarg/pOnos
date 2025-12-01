@@ -11,6 +11,7 @@ export default function AccessPanel({
     const [inviteEmail, setInviteEmail] = useState('');
     const [menuFor, setMenuFor] = useState(null); // id/email пользователя с открытым меню
 
+    // chronos-frontend/src/components/Calendar/AccessPanel.jsx
     const sendInvite = async () => {
         const v = inviteEmail.trim();
         if (!v) return;
@@ -25,6 +26,13 @@ export default function AccessPanel({
                 alert('This user already has access.');
             else if (msg === 'cannot-invite-yourself')
                 alert('You cannot invite yourself.');
+            else if (msg === 'user-not-found')
+                alert('User not found by this email or name.');
+            else if (msg === 'user-has-no-email')
+                alert('This user does not have an email set.');
+            else if (msg === 'invalid-email')
+                // на всякий пожарный, если все же придёт
+                alert('Invalid email format.');
             else alert('Failed: ' + msg);
         }
         setInviteEmail('');

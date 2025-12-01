@@ -199,6 +199,8 @@ export async function deleteCalendar(req, res) {
     }
 }
 
+const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // ===== Sharing & Members =====
 export async function shareCalendar(req, res) {
     try {
@@ -207,19 +209,62 @@ export async function shareCalendar(req, res) {
         assertMutableCalendar(cal);
 
         let { email, role } = req.body || {};
-        if (!email) return res.status(400).json({ error: 'email-required' });
 
-        email = String(email).trim().toLowerCase();
+        // 🔹 если пришел объект { email, address, value, name } — достаем строку
+        if (email && typeof email === 'object') {
+            email = email.email || email.address || email.value || null;
+        }
+
+        if (!email || typeof email !== 'string') {
+            return res.status(400).json({ error: 'email-required' });
+        }
+
+        let identifier = email.trim();
+        if (!identifier) {
+            return res.status(400).json({ error: 'email-required' });
+        }
+
+        const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        let targetEmail = null;
+        let targetUser = null;
+
+        // 1) Если похоже на email — используем как есть (как раньше)
+        if (EMAIL_RE.test(identifier.toLowerCase())) {
+            targetEmail = identifier.toLowerCase();
+            targetUser = await User.findOne({ email: targetEmail }).lean();
+        } else {
+            // 2) Иначе считаем, что это ник/имя пользователя
+            //    ищем по username или name (регистронезависимо)
+            const rx = new RegExp('^' + escapeRegex(identifier) + '$', 'i');
+            targetUser = await User.findOne({
+                $or: [{ username: rx }, { name: rx }],
+            }).lean();
+
+            if (!targetUser) {
+                return res.status(404).json({ error: 'user-not-found' });
+            }
+            if (!targetUser.email) {
+                return res.status(400).json({ error: 'user-has-no-email' });
+            }
+
+            targetEmail = String(targetUser.email).toLowerCase();
+        }
+
+        // на этом этапе у нас всегда есть targetEmail
+        email = targetEmail;
+
         role = role === 'editor' ? 'editor' : 'member';
 
-        // заборонити self-invite
         const inviter = await User.findById(uid).lean();
         if (inviter?.email?.toLowerCase() === email) {
             return res.status(400).json({ error: 'cannot-invite-yourself' });
         }
 
-        // якщо юзер існує і вже має доступ — не дублюємо
-        const existingUser = await User.findOne({ email }).lean();
+        // если юзер с таким email уже существует — проверяем, не в календаре ли он
+        const existingUser =
+            targetUser || (await User.findOne({ email }).lean());
+
         if (existingUser) {
             const uId = existingUser._id.toString();
             const already =
@@ -231,7 +276,6 @@ export async function shareCalendar(req, res) {
             }
         }
 
-        // якщо pending-інвайт уже є — повернемо його
         const pending = await Invitation.findOne({
             calendar: cal._id,
             email,

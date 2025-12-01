@@ -732,6 +732,7 @@ export default function CalendarsPage() {
         const q = searchQuery.trim().toLowerCase();
         const hasCatFilter = Array.isArray(categories) && categories.length > 0;
         const catsSet = new Set(categories || []);
+        const allKnownCats = new Set((catDefs || []).map((c) => c.slug));
 
         return events.filter((e) => {
             // 🎉 Праздники всегда видимы, вне поиска и категорий
@@ -749,9 +750,13 @@ export default function CalendarsPage() {
                     e.categoryInfo?.title
             );
 
-            const catOK =
-                !hasCatFilter || // нет выбранных → показываем всё
-                catsSet.has(evSlug); // slug совпал
+            const isKnown = evSlug && allKnownCats.has(evSlug);
+
+            // ЛОГИКА:
+            // 1) если фильтр пустой — показываем всё
+            // 2) если категория известная и выбрана — показываем
+            // 3) если категория НЕИЗВЕСТНА (чужая кастомная) — ТОЖЕ показываем
+            const catOK = !hasCatFilter || catsSet.has(evSlug) || !isKnown;
 
             return catOK && (!q || text.includes(q));
         });

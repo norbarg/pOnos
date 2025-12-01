@@ -205,6 +205,17 @@ export default function NewEventPage() {
             setError('Choose calendar');
             return;
         }
+
+        const selectedCal = calendars.find(
+            (c) => String(c.id) === String(calendarId)
+        );
+
+        if (selectedCal && selectedCal.role === 'member') {
+            setError(
+                'You can only create events in calendars where you have "can edit" rights.'
+            );
+            return;
+        }
         if (!title.trim()) {
             setError('Title is required');
             return;

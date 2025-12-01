@@ -118,17 +118,41 @@ function shouldSendForCategoryType(catType, kind) {
 // Собираем получателей с учётом активных календарей, но
 // для внешних участников события всегда шлём e-mail
 async function recipientsForEventOccurrence(ev, occStart) {
-    // уникальный набор юзеров: владелец + участники
+    // 1) Базовый набор: владелец + участники
     const ids = new Set([String(ev.owner), ...ev.participants.map(String)]);
+
+    // 2) Подтягиваем базовый календарь события и добавляем
+    //    всех его АКТИВНЫХ юзеров (owner + members с notifyActive)
+    const baseCal = await Calendar.findById(ev.calendar)
+        .select({ _id: 1, owner: 1, members: 1, notifyActive: 1 })
+        .lean();
+
+    if (baseCal) {
+        const baseUsers = [
+            String(baseCal.owner),
+            ...(baseCal.members || []).map((m) => {
+                const id = m && typeof m === 'object' && m.user ? m.user : m;
+                return String(id);
+            }),
+        ];
+
+        for (const uid of baseUsers) {
+            // только те, у кого календарь реально "активен"
+            if (isActiveForUser(baseCal, uid)) {
+                ids.add(uid);
+            }
+        }
+    }
+
     const uidList = Array.from(ids);
 
-    // карта userId -> calendarId (placement || базовый календарь события)
+    // 3) карта userId -> calendarId (placement || базовый календарь события)
     const userCalIds = new Map();
     for (const uid of uidList) {
         userCalIds.set(uid, resolveUserCalendarId(ev, uid));
     }
 
-    // подтягиваем все календари одним батчем
+    // 4) подтягиваем все календари разом
     const calIds = Array.from(
         new Set(
             Array.from(userCalIds.values())
@@ -142,7 +166,7 @@ async function recipientsForEventOccurrence(ev, occStart) {
         .lean();
     const calById = new Map(calendars.map((c) => [String(c._id), c]));
 
-    // подтягиваем пользователей (для email)
+    // 5) подтягиваем юзеров
     const users = await User.find({ _id: { $in: uidList } })
         .select({ _id: 1, email: 1, name: 1 })
         .lean();
@@ -172,10 +196,10 @@ async function recipientsForEventOccurrence(ev, occStart) {
             continue;
         }
 
-        // === 2) Участники события ===
+        // === 2) Участники / члены календаря ===
 
-        // Если у участника есть "свой" календарь с этим событием и он там активен —
-        // норм, учитываем эту активность
+        // Если у юзера есть календарь с этим событием и он там активен —
+        // шлём по обычным правилам
         if (cal && isActiveForUser(cal, uid)) {
             recipients.push({
                 uid,
@@ -186,8 +210,7 @@ async function recipientsForEventOccurrence(ev, occStart) {
         }
 
         // Во всех остальных случаях считаем его "внешним участником":
-        // он пригашён на событие по e-mail, и у него нет UI, где он мог бы
-        // выключить уведомления по календарю. Поэтому — шлём e-mail всегда.
+        // он может быть приглашён по email и не иметь UI для отключения.
         recipients.push({
             uid,
             email: user.email,
@@ -248,24 +271,29 @@ function windowBounds(base, offsetMin, widthSec) {
 //  - before15:  now+15..+15+interval+leeway (за 15 минут до начала)
 //  - end:       сейчас..+interval+leeway (момент конца)
 function* makeWindows(now) {
-    const width = REMINDERS_INTERVAL_SEC + SCAN_LEEWAY_SEC;
+    const width = REMINDERS_INTERVAL_SEC;
+    const leewayMs = SCAN_LEEWAY_SEC * 1000;
 
-    // окно “start”
+    // === start: [now - leeway; now + interval]
     yield {
         kind: 'start',
-        ...windowBounds(now, 0, width),
+        from: new Date(now.getTime() - leewayMs),
+        to: new Date(now.getTime() + width * 1000),
     };
 
-    // окно “за 15 минут”
+    // === before15: за 15 минут до события (± небольшой люфт)
+    const base15 = new Date(now.getTime() + 15 * 60 * 1000);
     yield {
         kind: 'before15',
-        ...windowBounds(now, 15, width),
+        from: new Date(base15.getTime() - leewayMs),
+        to: new Date(base15.getTime() + width * 1000),
     };
 
-    // окно “end”
+    // === end: [now - leeway; now + interval]
     yield {
         kind: 'end',
-        ...windowBounds(now, 0, width),
+        from: new Date(now.getTime() - leewayMs),
+        to: new Date(now.getTime() + width * 1000),
     };
 }
 
