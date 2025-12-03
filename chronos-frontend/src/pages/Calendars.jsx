@@ -12,6 +12,7 @@ import MonthView from '../components/Calendar/MonthView';
 import YearView from '../components/Calendar/YearView';
 import AccessPanel from '../components/Calendar/AccessPanel';
 import { api } from '../api/axios';
+import { absUrl } from '../config/apiOrigin';
 import '../styles/Calendar.css';
 
 import appIcon from '../assets/logo.png';
@@ -331,6 +332,20 @@ export default function CalendarsPage() {
             return false;
         }
     })();
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const handleResize = () => {
+            try {
+                setIsMobile(window.innerWidth <= 768);
+            } catch {
+                setIsMobile(false);
+            }
+        };
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // 2) Используем ли сохранённое из LS при этом входе?
     // Если был «resetOnEnter» — НЕ используем LS (стартуем Week + сегодня).
@@ -366,8 +381,16 @@ export default function CalendarsPage() {
     const [catDefs, setCatDefs] = useState([]);
 
     const [searchQuery, setSearchQuery] = useState('');
+    const [searchOpen, setSearchOpen] = useState(false);
+
     const [filterOpen, setFilterOpen] = useState(false);
+
     const filterBtnRef = useRef(null);
+
+    const searchBtnRef = useRef(null);
+    const searchPopRef = useRef(null);
+    const searchInputRef = useRef(null);
+
     const [categories, setCategories] = useState([]);
 
     const [sharedWith, setSharedWith] = useState([]);
@@ -384,19 +407,30 @@ export default function CalendarsPage() {
             const { data } = await api.get(`/calendars/${mainCal.id}/members`);
             const list = [data.owner, ...(data.members || [])]
                 .filter(Boolean)
-                .map((x) => ({
-                    id: x.id,
-                    email: x.email,
-                    name: x.name,
-                    // нормализуем в permission: 'owner' | 'edit' | 'view'
-                    permission:
-                        x.role === 'owner'
-                            ? 'owner'
-                            : x.role === 'editor'
-                            ? 'edit'
-                            : 'view',
-                    role: x.role, // держим и исходный role для совместимости
-                }));
+                .map((x) => {
+                    const rawAvatar = x.avatarUrl || x.avatar || null;
+                    const avatar =
+                        rawAvatar && rawAvatar.startsWith('http')
+                            ? rawAvatar
+                            : rawAvatar
+                            ? absUrl(rawAvatar) // 👈 переводим /uploads/... в полный URL
+                            : null;
+
+                    return {
+                        id: x.id,
+                        email: x.email,
+                        name: x.name,
+                        avatar, // 👈 сюда
+                        // нормализуем в permission: 'owner' | 'edit' | 'view'
+                        permission:
+                            x.role === 'owner'
+                                ? 'owner'
+                                : x.role === 'editor'
+                                ? 'edit'
+                                : 'view',
+                        role: x.role,
+                    };
+                });
             setSharedWith(list);
         } catch (e) {
             console.warn('load members failed', e?.message);
@@ -638,27 +672,34 @@ export default function CalendarsPage() {
         setAccessPos({ top, left });
     }, [accessOpen]);
 
-    // click-away
+    // click-away для ПОИСКА
     useEffect(() => {
-        if (!accessOpen) return;
+        if (!searchOpen) return;
         const onDoc = (e) => {
-            const pop = accessPopRef.current;
-            const btn = gearBtnRef.current;
+            const pop = searchPopRef.current;
+            const btn = searchBtnRef.current;
             const inPop = pop && pop.contains(e.target);
             const inBtn = btn && btn.contains(e.target);
-            if (!inPop && !inBtn) setAccessOpen(false);
+            if (!inPop && !inBtn) setSearchOpen(false);
         };
         document.addEventListener('pointerdown', onDoc, true);
         return () => document.removeEventListener('pointerdown', onDoc, true);
-    }, [accessOpen]);
+    }, [searchOpen]);
 
-    // Esc
+    // Esc закрывает поповер поиска
     useEffect(() => {
-        if (!accessOpen) return;
-        const onKey = (e) => e.key === 'Escape' && setAccessOpen(false);
+        if (!searchOpen) return;
+        const onKey = (e) => e.key === 'Escape' && setSearchOpen(false);
         document.addEventListener('keydown', onKey);
         return () => document.removeEventListener('keydown', onKey);
-    }, [accessOpen]);
+    }, [searchOpen]);
+
+    // автофокус на инпуте в поповере
+    useEffect(() => {
+        if (searchOpen && searchInputRef.current) {
+            searchInputRef.current.focus();
+        }
+    }, [searchOpen]);
 
     // стрелки: для month — шаг по МЕСЯЦАМ; для week — по НЕДЕЛЯМ
     function handlePrevNext(delta) {
@@ -886,19 +927,64 @@ export default function CalendarsPage() {
 
                 <div className="hdr-right">
                     {(viewMode === 'week' || viewMode === 'month') && (
-                        <div className="searchbox">
-                            <input
-                                className="search-input"
-                                placeholder="Search"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                            <img
-                                className="search-ico"
-                                src={icSearch}
-                                alt="search"
-                            />
-                        </div>
+                        <>
+                            {/* Десктопный инпут поиска */}
+                            {!isMobile && (
+                                <div className="searchbox searchbox--inline">
+                                    <input
+                                        className="search-input"
+                                        placeholder="Search"
+                                        value={searchQuery}
+                                        onChange={(e) =>
+                                            setSearchQuery(e.target.value)
+                                        }
+                                    />
+                                    <img
+                                        className="search-ico"
+                                        src={icSearch}
+                                        alt="search"
+                                    />
+                                </div>
+                            )}
+
+                            {/* Мобильная иконка + поповер */}
+                            {isMobile && (
+                                <>
+                                    <button
+                                        ref={searchBtnRef}
+                                        className="btn-icon search-toggle"
+                                        onClick={() => setSearchOpen((v) => !v)}
+                                        aria-label="Search"
+                                    >
+                                        <img src={icSearch} alt="search" />
+                                    </button>
+
+                                    {searchOpen && (
+                                        <div
+                                            ref={searchPopRef}
+                                            className="search-popover"
+                                        >
+                                            <input
+                                                ref={searchInputRef}
+                                                className="search-popover-input"
+                                                placeholder="Search"
+                                                value={searchQuery}
+                                                onChange={(e) =>
+                                                    setSearchQuery(
+                                                        e.target.value
+                                                    )
+                                                }
+                                            />
+                                            <img
+                                                className="search-popover-ico"
+                                                src={icSearch}
+                                                alt="search"
+                                            />
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </>
                     )}
 
                     <button

@@ -1,3 +1,4 @@
+// chronos-frontend/src/components/ProtectedRoute.jsx
 import { useSelector, useDispatch } from 'react-redux';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useEffect, useRef } from 'react';

@@ -85,11 +85,20 @@ export default function AccessPanel({
                         .slice(0, 1)
                         .toUpperCase();
 
+                    const avatarUrl = u.avatar || u.avatarUrl || null;
+
                     return (
                         <div className="ap-row" key={key}>
                             <div className="ap-user">
                                 <div className="ap-ava" aria-hidden>
-                                    {initials}
+                                    {avatarUrl ? (
+                                        <img
+                                            src={avatarUrl}
+                                            alt={u.name || u.email}
+                                        />
+                                    ) : (
+                                        initials
+                                    )}
                                 </div>
                                 <div className="ap-name">
                                     {u.name || u.email}

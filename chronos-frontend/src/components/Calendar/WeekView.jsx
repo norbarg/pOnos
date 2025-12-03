@@ -7,6 +7,7 @@ import catReminder from '../../assets/cat_reminder.png';
 import catTask from '../../assets/cat_task.png';
 import icShare from '../../assets/share.png';
 import icSendArrow from '../../assets/arrow_up_right.png';
+import holidayIcon from '../../assets/holiday_icon.png';
 
 import { api } from '../../api/axios';
 
@@ -156,9 +157,29 @@ function formatRange(start, end) {
     });
     return `${dateStr} ${fmtTime(s)} – ${dateStrEnd} ${fmtTime(e)}`;
 }
+function formatTimeRangeShort(start, end) {
+    const s = new Date(start);
+    const e = new Date(end);
+    const opts = {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    };
+    return `${s.toLocaleTimeString('en-GB', opts)} – ${e.toLocaleTimeString(
+        'en-GB',
+        opts
+    )}`;
+}
 
 /** POPUP */
-function EventPopover({ event, top, left, onDeleteEvent, onRemoveMember }) {
+function EventPopover({
+    event,
+    top,
+    left,
+    onDeleteEvent,
+    onRemoveMember,
+    mobile,
+}) {
     const [inviteOpen, setInviteOpen] = useState(false);
     const [inviteValue, setInviteValue] = useState('');
     const [inviteLoading, setInviteLoading] = useState(false);
@@ -166,6 +187,7 @@ function EventPopover({ event, top, left, onDeleteEvent, onRemoveMember }) {
     const [inviteMsg, setInviteMsg] = useState('');
 
     if (!event) return null;
+    const style = mobile ? {} : { top, left, width: POPOVER_WIDTH };
 
     const title = event.title || '(no title)';
     const desc = event.description || '';
@@ -225,8 +247,10 @@ function EventPopover({ event, top, left, onDeleteEvent, onRemoveMember }) {
 
     return (
         <div
-            className="event-popover"
-            style={{ top, left, width: POPOVER_WIDTH }}
+            className={
+                'event-popover' + (mobile ? ' event-popover--mobile' : '')
+            }
+            style={style}
             onClick={(e) => e.stopPropagation()}
         >
             {/* верхняя строка: Calendar + title + share */}
@@ -375,6 +399,21 @@ export default function WeekView({
 
     const navigate = useNavigate();
 
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const handleResize = () => {
+            try {
+                setIsMobile(window.innerWidth <= 768);
+            } catch {
+                setIsMobile(false);
+            }
+        };
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     // Esc закрывает поповер
     useEffect(() => {
         const onKey = (e) => {
@@ -449,39 +488,52 @@ export default function WeekView({
 
         return map.map((list) => layoutDayEvents(list));
     }, [visibleEvents, weekStart]);
+    // индекс ПРАЗДНИКОВ по дню (для мобилки)
+    const holidaysIndex = useMemo(() => {
+        const map = new Map();
+        (visibleEvents || []).forEach((ev) => {
+            if (!ev.isHoliday) return;
+            const d = new Date(ev.start);
+            const key = d.toDateString();
+            if (!map.has(key)) map.set(key, []);
+            map.get(key).push(ev);
+        });
+        return map;
+    }, [visibleEvents]);
 
     // загрузка owner/members + вычисление позиции поповера
     const handleOpenPopover = async (ev, di, domEvent) => {
-        if (!gridRef.current) return;
+        // 1) сначала просто открываем попап (мобилка или десктоп)
+        if (isMobile) {
+            setOpenInfo({
+                event: ev,
+                top: 0,
+                left: 0,
+            });
+        } else {
+            if (!gridRef.current) return;
 
-        const targetRect = domEvent.currentTarget.getBoundingClientRect();
-        const gridRect = gridRef.current.getBoundingClientRect();
+            const targetRect = domEvent.currentTarget.getBoundingClientRect();
+            const gridRect = gridRef.current.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const margin = 16;
 
-        const viewportWidth = window.innerWidth;
-        const margin = 16;
+            let top = (ev._rowStart - 1) * SLOT_HEIGHT_PX + 3;
+            let left = targetRect.right - gridRect.left + 8;
 
-        // 🔹 вертикаль — по тем же формулам, что и event.top
-        let top = (ev._rowStart - 1) * SLOT_HEIGHT_PX + 3;
+            if (left + POPOVER_WIDTH + margin > viewportWidth) {
+                left = targetRect.left - gridRect.left - POPOVER_WIDTH - 8;
+            }
+            if (left < margin) left = margin;
 
-        // 🔹 горизонталь — как раньше: справа от ивента, если влазит
-        let left = targetRect.right - gridRect.left + 8; // справа от ивента
-
-        // если поповер не влазит справа в окно — показываем слева
-        if (left + POPOVER_WIDTH + margin > viewportWidth) {
-            left = targetRect.left - gridRect.left - POPOVER_WIDTH - 8;
+            setOpenInfo({
+                event: ev,
+                top,
+                left,
+            });
         }
 
-        // минимальный отступ слева, чтобы не упирался в край
-        if (left < margin) {
-            left = margin;
-        }
-
-        setOpenInfo({
-            event: ev,
-            top,
-            left,
-        });
-
+        // 2) потом догружаем owner/members/canManage с бэка
         const eventId = ev.id || ev._id;
         if (!eventId) return;
 
@@ -496,6 +548,7 @@ export default function WeekView({
                 if (!prev) return prev;
                 const prevId = prev.event.id || prev.event._id;
                 if (String(prevId) !== String(eventId)) return prev;
+
                 return {
                     ...prev,
                     event: {
@@ -566,158 +619,345 @@ export default function WeekView({
 
     return (
         <div className="calendar-week" onClick={() => setOpenInfo(null)}>
-            {/* заголовок дней */}
-            <div className="week-header">
-                <div className="time-header"></div>
-                {days.map((d, i) => (
-                    <div
-                        className={
-                            'day-header' +
-                            (holidayDayFlags[i] ? ' day-header--holiday' : '')
-                        }
-                        key={i}
-                    >
-                        <div className="date">{d.getDate()}</div>
-                        <div className="dow">{WEEKDAY[i]}</div>
-                    </div>
-                ))}
-            </div>
+            {isMobile ? (
+                <>
+                    {/* MOBILE: неделя вертикально, день -> список событий */}
+                    <div className="week-mobile">
+                        {days.map((d, di) => {
+                            const eventsForDay = (dayEvents[di] || [])
+                                .slice()
+                                .sort(
+                                    (a, b) =>
+                                        new Date(a.start) - new Date(b.start)
+                                );
 
-            {/* сетка */}
-            <div
-                className="week-grid"
-                style={{ '--slot-h': '45px' }}
-                ref={gridRef}
-            >
-                <div className="time-col">
-                    {Array.from({ length: 24 }, (_, h) => (
-                        <div
-                            className="hour"
-                            key={h}
-                            style={{ gridRow: `${h * 2 + 1} / span 2` }}
-                        >
-                            {String(h).padStart(2, '0')}:00
-                        </div>
-                    ))}
-                </div>
+                            // праздники для этого дня (по дате начала, как в MonthView)
+                            const dayKey = new Date(
+                                d.getFullYear(),
+                                d.getMonth(),
+                                d.getDate()
+                            ).toDateString();
+                            const holidayEvents =
+                                holidaysIndex.get(dayKey) || [];
 
-                {days.map((d, di) => (
-                    <div
-                        className={
-                            'day-col' +
-                            (holidayDayFlags[di] ? ' day-col--holiday' : '')
-                        }
-                        key={di}
-                        onDoubleClick={() => onDateSelect?.(d)}
-                    >
-                        {Array.from({ length: 48 }, (_, r) => {
-                            // старт слота (полчаса) в локальном времени
-                            const slotStart = new Date(d);
-                            slotStart.setHours(0, 0, 0, 0);
-                            slotStart.setMinutes(r * 30); // r=0 -> 00:00, r=1 -> 00:30, ..., r=30 -> 15:00
+                            const hasEvents =
+                                eventsForDay.length > 0 ||
+                                holidayEvents.length > 0;
 
                             return (
-                                <div
-                                    key={`slot-${di}-${r}`}
-                                    className="slot"
-                                    style={{ gridRow: `${r + 1} / span 1` }}
-                                    aria-hidden="true"
-                                    onClick={(e) => {
-                                        e.stopPropagation(); // не закрывать попап просто так
-
-                                        navigate('/event', {
-                                            state: {
-                                                calId: calendarId || undefined,
-                                                slotStart:
-                                                    slotStart.toISOString(), // 👈 передаем точное время
-                                            },
-                                        });
-                                    }}
-                                />
-                            );
-                        })}
-
-                        {dayEvents[di].map((ev) => {
-                            const top = (ev._rowStart - 1) * SLOT_HEIGHT_PX + 3;
-                            const height =
-                                (ev._rowEnd - ev._rowStart) * SLOT_HEIGHT_PX -
-                                6;
-
-                            if (ev._colIndex >= 3) return null;
-
-                            const colTotal = ev._colTotal || 1;
-                            const widthPart = 100 / colTotal;
-                            const leftPercent = widthPart * ev._colIndex;
-
-                            const slotSpan = ev._rowEnd - ev._rowStart;
-                            const isShort = slotSpan <= 1;
-
-                            const bgColor = hexToRgba(
-                                ev.color || '#C5BDF0',
-                                0.8
-                            );
-                            const borderColor = hexToRgba(
-                                ev.color || '#C5BDF0',
-                                0.8
-                            );
-
-                            return (
-                                <div
-                                    key={`${ev.id || ev._id || 'ev'}-${di}-${
-                                        ev._rowStart
-                                    }-${ev._colIndex}`}
-                                    className="event"
-                                    style={{
-                                        top,
-                                        height,
-                                        left: `calc(${leftPercent}% + 6px)`,
-                                        width: `calc(${widthPart}% - 8px)`,
-                                        background: bgColor,
-                                        border: `1px solid ${borderColor}`,
-                                    }}
-                                    onClick={(domEvent) => {
-                                        domEvent.stopPropagation();
-                                        handleOpenPopover(ev, di, domEvent);
-                                    }}
-                                >
-                                    <div className="ev-title">
-                                        {iconByCat[ev.category] && (
-                                            <img
-                                                className="ev-icon"
-                                                src={iconByCat[ev.category]}
-                                                alt=""
-                                            />
-                                        )}
-                                        {ev.title}
+                                <div className="week-mobile-day" key={di}>
+                                    <div className="week-mobile-day-header">
+                                        <div className="week-mobile-day-date">
+                                            {d.toLocaleDateString('en-GB', {
+                                                day: 'numeric',
+                                                month: 'short',
+                                            })}
+                                        </div>
+                                        <div className="week-mobile-day-dow">
+                                            {WEEKDAY[di]}
+                                        </div>
                                     </div>
 
-                                    {!isShort && ev.description && (
-                                        <div
-                                            className="ev-desc"
-                                            style={{
-                                                color: getDescColor(ev.color),
-                                            }}
-                                        >
-                                            {truncateWords(ev.description, 4)}
+                                    {!hasEvents && (
+                                        <div className="week-mobile-empty">
+                                            There are no events
                                         </div>
                                     )}
+
+                                    {/* 🔴 ПРАЗДНИКИ — таблетки без времени слева */}
+                                    {holidayEvents.map((h) => (
+                                        <div
+                                            className="week-mobile-event-row week-mobile-holiday-row"
+                                            key={
+                                                h.id ||
+                                                h._id ||
+                                                h.title ||
+                                                `holiday-${di}`
+                                            }
+                                        >
+                                            {/* Пустой столбец времени для выравнивания, но без текста */}
+                                            <div className="week-mobile-event-time week-mobile-holiday-time" />
+
+                                            <div className="week-mobile-holiday-pill">
+                                                <span className="pill-icon">
+                                                    <img
+                                                        src={holidayIcon}
+                                                        alt=""
+                                                    />
+                                                </span>
+                                                <span className="pill-label">
+                                                    {h.title || 'Holiday'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    {/* обычные события с временем слева */}
+                                    {eventsForDay.map((ev) => {
+                                        const bg = hexToRgba(
+                                            ev.color || '#C5BDF0',
+                                            0.9
+                                        );
+                                        const border = hexToRgba(
+                                            ev.color || '#C5BDF0',
+                                            1
+                                        );
+
+                                        return (
+                                            <div
+                                                key={ev.id || ev._id}
+                                                className="week-mobile-event-row"
+                                            >
+                                                <div className="week-mobile-event-time">
+                                                    {formatTimeRangeShort(
+                                                        ev.start,
+                                                        ev.end
+                                                    )}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    className="week-mobile-event-pill"
+                                                    style={{
+                                                        background: bg,
+                                                        borderColor: border,
+                                                    }}
+                                                    onClick={(domEvent) => {
+                                                        domEvent.stopPropagation();
+                                                        handleOpenPopover(
+                                                            ev,
+                                                            di,
+                                                            domEvent
+                                                        );
+                                                    }}
+                                                >
+                                                    <div className="week-mobile-event-title">
+                                                        {iconByCat[
+                                                            ev.category
+                                                        ] && (
+                                                            <img
+                                                                className="ev-icon"
+                                                                src={
+                                                                    iconByCat[
+                                                                        ev
+                                                                            .category
+                                                                    ]
+                                                                }
+                                                                alt=""
+                                                            />
+                                                        )}
+                                                        {ev.title ||
+                                                            '(no title)'}
+                                                    </div>
+                                                    {ev.description && (
+                                                        <div className="week-mobile-event-desc">
+                                                            {truncateWords(
+                                                                ev.description,
+                                                                8
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             );
                         })}
                     </div>
-                ))}
 
-                {/* один поповер на всю неделю, позиция в absolute по week-grid */}
-                {openInfo && (
-                    <EventPopover
-                        event={openInfo.event}
-                        top={openInfo.top}
-                        left={openInfo.left}
-                        onDeleteEvent={handleDelete}
-                        onRemoveMember={handleRemoveMember}
-                    />
-                )}
-            </div>
+                    {/* фуллскрін карточка ивента */}
+                    {openInfo && (
+                        <div
+                            className="event-popover-overlay"
+                            onClick={() => setOpenInfo(null)}
+                        >
+                            <EventPopover
+                                event={openInfo.event}
+                                onDeleteEvent={handleDelete}
+                                onRemoveMember={handleRemoveMember}
+                                mobile
+                            />
+                        </div>
+                    )}
+                </>
+            ) : (
+                <>
+                    {/* DESKTOP: как было — шапка + сетка 7x24 */}
+                    <div className="week-header">
+                        <div className="time-header"></div>
+                        {days.map((d, i) => (
+                            <div
+                                className={
+                                    'day-header' +
+                                    (holidayDayFlags[i]
+                                        ? ' day-header--holiday'
+                                        : '')
+                                }
+                                key={i}
+                            >
+                                <div className="date">{d.getDate()}</div>
+                                <div className="dow">{WEEKDAY[i]}</div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div
+                        className="week-grid"
+                        style={{ '--slot-h': '45px' }}
+                        ref={gridRef}
+                    >
+                        <div className="time-col">
+                            {Array.from({ length: 24 }, (_, h) => (
+                                <div
+                                    className="hour"
+                                    key={h}
+                                    style={{ gridRow: `${h * 2 + 1} / span 2` }}
+                                >
+                                    {String(h).padStart(2, '0')}:00
+                                </div>
+                            ))}
+                        </div>
+
+                        {days.map((d, di) => (
+                            <div
+                                className={
+                                    'day-col' +
+                                    (holidayDayFlags[di]
+                                        ? ' day-col--holiday'
+                                        : '')
+                                }
+                                key={di}
+                                onDoubleClick={() => onDateSelect?.(d)}
+                            >
+                                {Array.from({ length: 48 }, (_, r) => {
+                                    const slotStart = new Date(d);
+                                    slotStart.setHours(0, 0, 0, 0);
+                                    slotStart.setMinutes(r * 30);
+
+                                    return (
+                                        <div
+                                            key={`slot-${di}-${r}`}
+                                            className="slot"
+                                            style={{
+                                                gridRow: `${r + 1} / span 1`,
+                                            }}
+                                            aria-hidden="true"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigate('/event', {
+                                                    state: {
+                                                        calId:
+                                                            calendarId ||
+                                                            undefined,
+                                                        slotStart:
+                                                            slotStart.toISOString(),
+                                                    },
+                                                });
+                                            }}
+                                        />
+                                    );
+                                })}
+
+                                {dayEvents[di].map((ev) => {
+                                    const top =
+                                        (ev._rowStart - 1) * SLOT_HEIGHT_PX + 3;
+                                    const height =
+                                        (ev._rowEnd - ev._rowStart) *
+                                            SLOT_HEIGHT_PX -
+                                        6;
+
+                                    if (ev._colIndex >= 3) return null;
+
+                                    const colTotal = ev._colTotal || 1;
+                                    const widthPart = 100 / colTotal;
+                                    const leftPercent =
+                                        widthPart * ev._colIndex;
+
+                                    const slotSpan = ev._rowEnd - ev._rowStart;
+                                    const isShort = slotSpan <= 1;
+
+                                    const bgColor = hexToRgba(
+                                        ev.color || '#C5BDF0',
+                                        0.8
+                                    );
+                                    const borderColor = hexToRgba(
+                                        ev.color || '#C5BDF0',
+                                        0.8
+                                    );
+
+                                    return (
+                                        <div
+                                            key={`${
+                                                ev.id || ev._id || 'ev'
+                                            }-${di}-${ev._rowStart}-${
+                                                ev._colIndex
+                                            }`}
+                                            className="event"
+                                            style={{
+                                                top,
+                                                height,
+                                                left: `calc(${leftPercent}% + 6px)`,
+                                                width: `calc(${widthPart}% - 8px)`,
+                                                background: bgColor,
+                                                border: `1px solid ${borderColor}`,
+                                            }}
+                                            onClick={(domEvent) => {
+                                                domEvent.stopPropagation();
+                                                handleOpenPopover(
+                                                    ev,
+                                                    di,
+                                                    domEvent
+                                                );
+                                            }}
+                                        >
+                                            <div className="ev-title">
+                                                {iconByCat[ev.category] && (
+                                                    <img
+                                                        className="ev-icon"
+                                                        src={
+                                                            iconByCat[
+                                                                ev.category
+                                                            ]
+                                                        }
+                                                        alt=""
+                                                    />
+                                                )}
+                                                {ev.title}
+                                            </div>
+
+                                            {!isShort && ev.description && (
+                                                <div
+                                                    className="ev-desc"
+                                                    style={{
+                                                        color: getDescColor(
+                                                            ev.color
+                                                        ),
+                                                    }}
+                                                >
+                                                    {truncateWords(
+                                                        ev.description,
+                                                        4
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ))}
+
+                        {openInfo && (
+                            <EventPopover
+                                event={openInfo.event}
+                                top={openInfo.top}
+                                left={openInfo.left}
+                                onDeleteEvent={handleDelete}
+                                onRemoveMember={handleRemoveMember}
+                            />
+                        )}
+                    </div>
+                </>
+            )}
         </div>
     );
 }

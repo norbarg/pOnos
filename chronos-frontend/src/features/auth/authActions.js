@@ -24,9 +24,12 @@ export const fetchMe = () => async (dispatch) => {
         const { data } = await api.get('/auth/me');
         dispatch({ type: AUTH_ME_SUCCESS, payload: data });
         return { ok: true, data };
-    } catch {
+    } catch (err) {
+        const status = err?.response?.status;
+
+        // 401 уже поймает axios-интерцептор и выкинет на /login
         dispatch({ type: AUTH_ME_FAILURE, error: null, silent: true });
-        return { ok: false };
+        return { ok: false, status };
     }
 };
 
