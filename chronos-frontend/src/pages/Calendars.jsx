@@ -12,6 +12,7 @@ import MonthView from '../components/Calendar/MonthView';
 import YearView from '../components/Calendar/YearView';
 import AccessPanel from '../components/Calendar/AccessPanel';
 import { api } from '../api/axios';
+import { absUrl } from '../config/apiOrigin';
 import '../styles/Calendar.css';
 
 import appIcon from '../assets/logo.png';
@@ -406,19 +407,30 @@ export default function CalendarsPage() {
             const { data } = await api.get(`/calendars/${mainCal.id}/members`);
             const list = [data.owner, ...(data.members || [])]
                 .filter(Boolean)
-                .map((x) => ({
-                    id: x.id,
-                    email: x.email,
-                    name: x.name,
-                    // нормализуем в permission: 'owner' | 'edit' | 'view'
-                    permission:
-                        x.role === 'owner'
-                            ? 'owner'
-                            : x.role === 'editor'
-                            ? 'edit'
-                            : 'view',
-                    role: x.role, // держим и исходный role для совместимости
-                }));
+                .map((x) => {
+                    const rawAvatar = x.avatarUrl || x.avatar || null;
+                    const avatar =
+                        rawAvatar && rawAvatar.startsWith('http')
+                            ? rawAvatar
+                            : rawAvatar
+                            ? absUrl(rawAvatar) // 👈 переводим /uploads/... в полный URL
+                            : null;
+
+                    return {
+                        id: x.id,
+                        email: x.email,
+                        name: x.name,
+                        avatar, // 👈 сюда
+                        // нормализуем в permission: 'owner' | 'edit' | 'view'
+                        permission:
+                            x.role === 'owner'
+                                ? 'owner'
+                                : x.role === 'editor'
+                                ? 'edit'
+                                : 'view',
+                        role: x.role,
+                    };
+                });
             setSharedWith(list);
         } catch (e) {
             console.warn('load members failed', e?.message);

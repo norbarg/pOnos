@@ -477,6 +477,13 @@ html[data-theme='light'] {
     justify-content: center;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
+.ap-ava img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+    display: block;
+}
 .ap .ap-name {
     font-weight: 600;
     color: var(--text-theme);
@@ -1159,6 +1166,27 @@ html[data-theme='light'] {
         max-width: 520px;
         max-height: 85vh;
         overflow-y: auto;
+    }
+    /* праздничные таблетки в мобильном WeekView */
+    .week-mobile-holiday-row {
+        margin-top: 6px;
+    }
+
+    /* скрываем текст времени, но оставляем ширину для выравнивания */
+    .week-mobile-holiday-time {
+        visibility: hidden;
+    }
+
+    .week-mobile-holiday-pill {
+        flex: 1;
+        border-radius: 12px;
+        background: var(--holiday-bg);
+        padding: 8px 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        text-align: left;
+        box-shadow: var(--shadow-card);
     }
 }
 

@@ -239,7 +239,12 @@ body {
 .btn.btn--small {
     padding: 12px 20px;
     font-size: 18px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
 }
+.btn.btn--small:hover {
+    scale: 1.02;
+}
+
 .btn1 {
     appearance: none;
     border: 0;
@@ -414,7 +419,7 @@ body {
     .profilePanel {
         --card: 100%;
         --gap: 16px;
-        padding: 18px 12px 20px;
+        padding: 18px 12px 80px;
         max-width: 100%;
     }
 

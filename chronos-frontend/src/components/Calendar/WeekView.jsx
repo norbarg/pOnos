@@ -7,6 +7,7 @@ import catReminder from '../../assets/cat_reminder.png';
 import catTask from '../../assets/cat_task.png';
 import icShare from '../../assets/share.png';
 import icSendArrow from '../../assets/arrow_up_right.png';
+import holidayIcon from '../../assets/holiday_icon.png';
 
 import { api } from '../../api/axios';
 
@@ -487,6 +488,18 @@ export default function WeekView({
 
         return map.map((list) => layoutDayEvents(list));
     }, [visibleEvents, weekStart]);
+    // индекс ПРАЗДНИКОВ по дню (для мобилки)
+    const holidaysIndex = useMemo(() => {
+        const map = new Map();
+        (visibleEvents || []).forEach((ev) => {
+            if (!ev.isHoliday) return;
+            const d = new Date(ev.start);
+            const key = d.toDateString();
+            if (!map.has(key)) map.set(key, []);
+            map.get(key).push(ev);
+        });
+        return map;
+    }, [visibleEvents]);
 
     // загрузка owner/members + вычисление позиции поповера
     const handleOpenPopover = async (ev, di, domEvent) => {
@@ -618,7 +631,18 @@ export default function WeekView({
                                         new Date(a.start) - new Date(b.start)
                                 );
 
-                            const hasEvents = eventsForDay.length > 0;
+                            // праздники для этого дня (по дате начала, как в MonthView)
+                            const dayKey = new Date(
+                                d.getFullYear(),
+                                d.getMonth(),
+                                d.getDate()
+                            ).toDateString();
+                            const holidayEvents =
+                                holidaysIndex.get(dayKey) || [];
+
+                            const hasEvents =
+                                eventsForDay.length > 0 ||
+                                holidayEvents.length > 0;
 
                             return (
                                 <div className="week-mobile-day" key={di}>
@@ -640,6 +664,35 @@ export default function WeekView({
                                         </div>
                                     )}
 
+                                    {/* 🔴 ПРАЗДНИКИ — таблетки без времени слева */}
+                                    {holidayEvents.map((h) => (
+                                        <div
+                                            className="week-mobile-event-row week-mobile-holiday-row"
+                                            key={
+                                                h.id ||
+                                                h._id ||
+                                                h.title ||
+                                                `holiday-${di}`
+                                            }
+                                        >
+                                            {/* Пустой столбец времени для выравнивания, но без текста */}
+                                            <div className="week-mobile-event-time week-mobile-holiday-time" />
+
+                                            <div className="week-mobile-holiday-pill">
+                                                <span className="pill-icon">
+                                                    <img
+                                                        src={holidayIcon}
+                                                        alt=""
+                                                    />
+                                                </span>
+                                                <span className="pill-label">
+                                                    {h.title || 'Holiday'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    {/* обычные события с временем слева */}
                                     {eventsForDay.map((ev) => {
                                         const bg = hexToRgba(
                                             ev.color || '#C5BDF0',

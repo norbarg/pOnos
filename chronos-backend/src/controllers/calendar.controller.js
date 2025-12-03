@@ -335,12 +335,19 @@ export async function listMembers(req, res) {
         email: owner.email,
         name: owner.name,
         role: 'owner',
+        avatar: owner.avatar || null, // 👈 добавили
     };
 
     const membersDto = members.map((m) => {
         const id = m._id.toString();
         const role = rolesMap.get(id) === 'editor' ? 'editor' : 'member';
-        return { id, email: m.email, name: m.name, role };
+        return {
+            id,
+            email: m.email,
+            name: m.name,
+            role,
+            avatar: m.avatar || null, // 👈 добавили
+        };
     });
 
     return res.json({ owner: ownerDto, members: membersDto });
