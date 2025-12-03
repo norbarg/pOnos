@@ -202,7 +202,7 @@ export default function EditProfileModal({
                                 <option value="GB">United Kingdom</option>
                             </select>
                             <div className="ep-hint">
-                                Used for national holidays in your calendar.
+                                Used for national holidays in your calendar
                             </div>
                         </div>
 
