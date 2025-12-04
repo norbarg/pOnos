@@ -1,0 +1,80 @@
+.calMenu {
+    position: absolute;
+    right: -146px;
+    top: 40px;
+    background: var(--p-panel);
+    border: 2px solid var(--p-card-border);
+    border-radius: 16px;
+    padding: 10px;
+    width: 174px;
+    z-index: 30;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.calMenu__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    border: 0;
+    background: transparent;
+    color: var(--p-text);
+    font-weight: 700;
+    font-size: 15px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-family: 'League Spartan', system-ui, -apple-system, Segoe UI, Roboto,
+        Arial, sans-serif;
+}
+
+.calMenu__item img {
+    width: 18px;
+    height: 18px;
+    opacity: 0.9;
+    transition: filter 0.15s ease, opacity 0.15s ease;
+}
+
+.calMenu__item:hover {
+    background: var(--p-card-hover);
+}
+
+.calMenu__item--danger {
+    color: #f36d6d;
+}
+.calMenu__item--danger:hover {
+    background: #f36d6d6d;
+}
+
+.calMenu__sep {
+    height: 6px;
+    border-radius: 6px;
+    background: var(--p-accent-2);
+    margin: 8px 12px;
+}
+
+.calMenu__leave {
+    appearance: none;
+    border: 0;
+    width: 100%;
+    background: transparent;
+    color: var(--p-text);
+    font-weight: 800;
+    padding: 6px 10px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 15px;
+    font-family: 'League Spartan', system-ui, -apple-system, Segoe UI, Roboto,
+        Arial, sans-serif;
+}
+.calMenu__leave:hover {
+    background: var(--p-card-hover);
+}
+
+.calMenu__item img {
+    filter: none;
+}
+
+html[data-theme='light'] .calMenu__item img {
+    filter: brightness(0.25) contrast(2.2);
+}

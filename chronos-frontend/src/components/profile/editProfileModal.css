@@ -1,0 +1,193 @@
+.ep-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(10, 12, 18, 0.55);
+    backdrop-filter: blur(2px);
+    display: grid;
+    place-items: center;
+    padding: 24px;
+}
+
+.ep-description {
+    color: var(--p-muted);
+}
+
+.ep-modal {
+    width: min(596px, 96vw);
+    background: var(--p-panel);
+    color: var(--p-text);
+    border-radius: 20px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+    padding: 30px;
+    border: 2px solid var(--p-panel-border);
+    font-family: 'League Spartan', system-ui, -apple-system, Segoe UI, Roboto,
+        Arial, sans-serif;
+}
+
+.ep-grid {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 28px;
+    align-items: start;
+}
+
+.ep-title {
+    margin: 0;
+    font-size: 30px;
+    font-weight: 600;
+    color: var(--p-accent);
+}
+
+.ep-select {
+    background: var(--p-card);
+    border-radius: 16px;
+    border: 1px solid var(--p-card-border);
+    color: var(--p-text);
+    height: 52px;
+    padding: 0 16px;
+    font-size: 18px;
+    font-family: inherit;
+}
+
+.ep-field {
+    margin-top: 18px;
+}
+.ep-field > label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--p-accent);
+    font-size: 20px;
+}
+
+.ep-input {
+    width: 100%;
+    height: 52px;
+    border-radius: 16px;
+    background: var(--p-card);
+    border: 1px solid var(--p-card-border);
+    color: var(--p-text);
+    outline: none;
+    padding: 0 16px;
+    font-size: 18px;
+    font-family: inherit;
+}
+
+.ep-input::placeholder {
+    color: var(--p-muted);
+}
+
+.ep-hint {
+    margin-top: 11px;
+    font-size: 13px;
+    color: var(--p-muted);
+}
+
+.ep-error {
+    margin-top: 14px;
+    color: var(--p-accent-2);
+    font-weight: 700;
+}
+
+.ep-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 34px;
+}
+
+.ep-btn,
+.ep-btn1 {
+    appearance: none;
+    border: 0;
+    cursor: pointer;
+    border-radius: 12px;
+    padding: 12px 20px;
+    line-height: 1;
+    font-weight: 700;
+    font-size: 15px;
+    font-family: inherit;
+    white-space: nowrap;
+}
+
+.ep-btn--primary {
+    background: var(--p-accent);
+    color: #ffffff;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.ep-btn--primary[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+.ep-btn--danger {
+    background: #d65050;
+    color: #ffffff;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.ep-btn--danger.is-ask {
+    background: #b74444;
+}
+
+.ep-right {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+.ep-avatarWrap {
+    position: relative;
+    width: 280px;
+    height: 280px;
+}
+.ep-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 999px;
+    object-fit: cover;
+    background: #eceff3;
+}
+.ep-avatar--placeholder {
+    background: #eceff3
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 24 24' fill='none' stroke='%239aa3bd' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 21a8 8 0 0 0-16 0'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E")
+        no-repeat center 45%;
+    background-size: 44%;
+    border-radius: 999px;
+}
+
+.ep-uploadBtn {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    width: 60px;
+    height: 60px;
+    border-radius: 999px;
+    background: var(--p-card);
+    border: 2px solid var(--p-card-border);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.ep-uploadBtn img {
+    width: 50px;
+    height: 50px;
+    display: block;
+    transition: filter 0.15s ease;
+}
+
+body.modal-open {
+    overflow: hidden;
+}
+
+.ep-divider {
+    width: 137px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--p-accent-2);
+    opacity: 0.9;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    margin: 10px 0;
+}
