@@ -1,4 +1,3 @@
-// chronos-frontend/src/components/profile/EditProfileModal.jsx
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../api/axios';
 import { absUrl } from '../../config/apiOrigin';
@@ -12,7 +11,6 @@ const COUNTRY_OPTIONS = [
     { code: 'PL', label: 'Poland' },
     { code: 'DE', label: 'Germany' },
     { code: 'US', label: 'United States' },
-    // добавишь свои
 ];
 
 export default function EditProfileModal({
@@ -95,9 +93,6 @@ export default function EditProfileModal({
 
         const wantsCountry = countryChanged;
 
-        // можно сохранять, если:
-        // - логин валиден
-        // - и есть хоть одно изменение: имя, аватар, страна
         return !loading && nameValid && (wantsName || !!file || wantsCountry);
     }, [loading, nameChanged, username, file, countryChanged]);
 

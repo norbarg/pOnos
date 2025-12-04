@@ -1,22 +1,19 @@
-// src/services/mail.service.js
 import nodemailer from 'nodemailer';
 
 let transporter = null;
 
 function buildTransport() {
-    // Вариант 1: единая строка подключения SMTP_URL (например, smtp://user:pass@smtp.gmail.com:465)
     if (process.env.SMTP_URL) {
         return nodemailer.createTransport(process.env.SMTP_URL);
     }
 
-    // Вариант 2: Gmail/любой SMTP по отдельным полям
     const host = process.env.SMTP_HOST;
     const user = process.env.SMTP_USER;
     const pass = process.env.SMTP_PASS;
 
     if (host && user && pass) {
         const port = Number(process.env.SMTP_PORT || 465);
-        const secure = String(process.env.SMTP_SECURE || 'true') === 'true'; // 465=true, 587=false
+        const secure = String(process.env.SMTP_SECURE || 'true') === 'true';
         return nodemailer.createTransport({
             host,
             port,
@@ -26,7 +23,6 @@ function buildTransport() {
         });
     }
 
-    // Вариант 3: упрощённо через "service: gmail"
     if (
         process.env.SMTP_SERVICE === 'gmail' &&
         process.env.SMTP_USER &&
@@ -40,8 +36,6 @@ function buildTransport() {
 
     return null;
 }
-
-// Инициализация один раз при первом импорте файла
 (function init() {
     transporter = buildTransport();
     if (!transporter) {
@@ -50,7 +44,6 @@ function buildTransport() {
         );
         return;
     }
-    // Проверим SMTP сразу, чтобы отлавливать ошибки конфигурации
     transporter.verify((err, ok) => {
         if (err) {
             console.error('[MAIL] SMTP verify failed:', err.message || err);
@@ -68,7 +61,6 @@ function buildTransport() {
     });
 })();
 
-// Базовая отправка
 async function sendMail({ to, subject, text, html }) {
     if (!transporter) {
         console.log('[MAIL:FAKE]', { to, subject, text, html });
@@ -83,7 +75,6 @@ async function sendMail({ to, subject, text, html }) {
     });
 }
 
-// === Письмо-инвайт календаря (используется shareCalendar) ===
 export async function sendInviteEmail({ to, calendarName, role, link }) {
     const subject = `You've been invited to "${calendarName}" (${role})`;
     const text = `You were invited to calendar "${calendarName}" as ${role}. Accept: ${link}`;
@@ -93,7 +84,6 @@ export async function sendInviteEmail({ to, calendarName, role, link }) {
     return sendMail({ to, subject, text, html });
 }
 
-// === Письмо-инвайт события ===
 export async function sendEventInviteEmail({ to, eventTitle, when, link }) {
     const subject = `Event invite: ${eventTitle}`;
     const text = `You've been invited to "${eventTitle}"${
@@ -106,8 +96,6 @@ export async function sendEventInviteEmail({ to, eventTitle, when, link }) {
     <p><a href="${link}">Accept invitation</a></p>`;
     return sendMail({ to, subject, text, html });
 }
-// === Письма-напоминания по событиям ===
-// === Письма-напоминания по событиям ===
 export async function sendEventReminderEmail({
     to,
     eventTitle,
@@ -139,7 +127,6 @@ export async function sendEventReminderEmail({
 <p><i>${when}</i></p>
 <p><a href="${link}">Open event</a></p>`;
     } else {
-        // запасной вариант, если вдруг прилетит что-то левое
         subject = `Reminder: "${eventTitle}"`;
         text = `Reminder for event "${eventTitle}". When: ${when}. Open: ${link}`;
         html = `<p>Reminder for event <b>${eventTitle}</b>.</p>

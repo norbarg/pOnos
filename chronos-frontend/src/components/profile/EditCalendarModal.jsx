@@ -1,4 +1,3 @@
-// chronos-frontend/src/components/profile/EditCalendarModal.jsx
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../api/axios';
 import './newCalendarModal.css';
@@ -176,9 +175,7 @@ export default function EditCalendarModal({
                         ))}
                     </div>
                 </div>
-                <div className="ep-hint">
-                              Calendar header color
-                            </div>
+                <div className="ep-hint">Calendar header color</div>
                 <div className="nc-actions">
                     <button
                         className="nc-btn nc-btn--ghost"

@@ -1,4 +1,3 @@
-// chronos-frontend/src/components/Calendar/WeekView.jsx
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../../styles/Calendar.css';
@@ -14,9 +13,8 @@ import { api } from '../../api/axios';
 const OBJECT_ID_RE = /^[0-9a-f]{24}$/i;
 const WEEKDAY = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const SLOT_HEIGHT_PX = 45;
-const POPOVER_WIDTH = 340; // ширина поповера (ориентир)
+const POPOVER_WIDTH = 340;
 
-// helpers
 function addDays(d, n) {
     const x = new Date(d);
     x.setDate(x.getDate() + n);
@@ -171,7 +169,6 @@ function formatTimeRangeShort(start, end) {
     )}`;
 }
 
-/** POPUP */
 function EventPopover({
     event,
     top,
@@ -183,7 +180,7 @@ function EventPopover({
     const [inviteOpen, setInviteOpen] = useState(false);
     const [inviteValue, setInviteValue] = useState('');
     const [inviteLoading, setInviteLoading] = useState(false);
-    const [inviteStatus, setInviteStatus] = useState(null); // 'ok' | 'error' | null
+    const [inviteStatus, setInviteStatus] = useState(null);
     const [inviteMsg, setInviteMsg] = useState('');
 
     if (!event) return null;
@@ -211,7 +208,6 @@ function EventPopover({
     const displayName = (u) =>
         u.name || u.email || u.username || u.id || 'user';
 
-    // 🔹 тот же цвет, что и в мини-карточке
     const descColor = getDescColor(event.color);
 
     const handleInviteSubmit = async (e) => {
@@ -224,8 +220,6 @@ function EventPopover({
         setInviteMsg('');
 
         try {
-            // сейчас бэкенд принимает email; если будешь делать поиск по имени —
-            // тут можно форкнуть логику (if includes('@') ... else ...).
             await api.post(`/events/${event.id || event._id}/invite`, {
                 email: val,
             });
@@ -253,7 +247,6 @@ function EventPopover({
             style={style}
             onClick={(e) => e.stopPropagation()}
         >
-            {/* верхняя строка: Calendar + title + share */}
             <div className="ep-head">
                 <div className="ep-head-left">
                     <span className="ep-calendar">{calendarName}</span>
@@ -283,7 +276,7 @@ function EventPopover({
             </div>
 
             <div className="ep-time">{timeLabel}</div>
-            {/* 🔹 Invite to event */}
+            {/*  Invite to event */}
             {inviteOpen && (
                 <div className="ep-invite">
                     <div className="ep-invite-label">Invite to event</div>
@@ -330,7 +323,6 @@ function EventPopover({
                 </div>
             )}
 
-            {/* owner / members */}
             <div className="ep-meta">
                 <div className="ep-meta-lines">
                     <div className="ep-meta-row">
@@ -371,7 +363,6 @@ function EventPopover({
                 </div>
             </div>
 
-            {/* нижний Delete — удаляет весь event */}
             {canDelete && (
                 <div className="ep-footer">
                     <button
@@ -391,7 +382,7 @@ export default function WeekView({
     weekStart,
     events,
     onDateSelect,
-    calendarId, // 👈 новый проп
+    calendarId,
 }) {
     const [openInfo, setOpenInfo] = useState(null);
     const [hiddenIds, setHiddenIds] = useState([]);
@@ -414,7 +405,6 @@ export default function WeekView({
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Esc закрывает поповер
     useEffect(() => {
         const onKey = (e) => {
             if (e.key === 'Escape') setOpenInfo(null);
@@ -428,7 +418,6 @@ export default function WeekView({
         [weekStart]
     );
 
-    // отфильтровываем удалённые ивенты
     const visibleEvents = useMemo(() => {
         if (!hiddenIds.length) return events;
         const set = new Set(hiddenIds.map((id) => String(id)));
@@ -438,7 +427,6 @@ export default function WeekView({
         });
     }, [events, hiddenIds]);
 
-    // какие дни недели являются праздничными (есть хотя бы один holiday-ивент)
     const holidayDayFlags = useMemo(() => {
         const flags = Array(7).fill(false);
         (visibleEvents || []).forEach((ev) => {
@@ -488,7 +476,6 @@ export default function WeekView({
 
         return map.map((list) => layoutDayEvents(list));
     }, [visibleEvents, weekStart]);
-    // индекс ПРАЗДНИКОВ по дню (для мобилки)
     const holidaysIndex = useMemo(() => {
         const map = new Map();
         (visibleEvents || []).forEach((ev) => {
@@ -501,9 +488,7 @@ export default function WeekView({
         return map;
     }, [visibleEvents]);
 
-    // загрузка owner/members + вычисление позиции поповера
     const handleOpenPopover = async (ev, di, domEvent) => {
-        // 1) сначала просто открываем попап (мобилка или десктоп)
         if (isMobile) {
             setOpenInfo({
                 event: ev,
@@ -533,7 +518,6 @@ export default function WeekView({
             });
         }
 
-        // 2) потом догружаем owner/members/canManage с бэка
         const eventId = ev.id || ev._id;
         if (!eventId) return;
 
@@ -572,7 +556,6 @@ export default function WeekView({
         try {
             await api.delete(`/events/${eventId}/participants/${userId}`);
 
-            // обновляем участников только в текущем поповере
             setOpenInfo((prev) => {
                 if (!prev) return prev;
                 const prevId = prev.event.id || prev.event._id;
@@ -604,7 +587,6 @@ export default function WeekView({
 
         try {
             await api.delete(`/events/${id}`);
-            // локально прячем
             setHiddenIds((prev) =>
                 prev.includes(String(id)) ? prev : [...prev, String(id)]
             );
@@ -621,7 +603,6 @@ export default function WeekView({
         <div className="calendar-week" onClick={() => setOpenInfo(null)}>
             {isMobile ? (
                 <>
-                    {/* MOBILE: неделя вертикально, день -> список событий */}
                     <div className="week-mobile">
                         {days.map((d, di) => {
                             const eventsForDay = (dayEvents[di] || [])
@@ -631,7 +612,6 @@ export default function WeekView({
                                         new Date(a.start) - new Date(b.start)
                                 );
 
-                            // праздники для этого дня (по дате начала, как в MonthView)
                             const dayKey = new Date(
                                 d.getFullYear(),
                                 d.getMonth(),
@@ -664,7 +644,6 @@ export default function WeekView({
                                         </div>
                                     )}
 
-                                    {/* 🔴 ПРАЗДНИКИ — таблетки без времени слева */}
                                     {holidayEvents.map((h) => (
                                         <div
                                             className="week-mobile-event-row week-mobile-holiday-row"
@@ -675,7 +654,6 @@ export default function WeekView({
                                                 `holiday-${di}`
                                             }
                                         >
-                                            {/* Пустой столбец времени для выравнивания, но без текста */}
                                             <div className="week-mobile-event-time week-mobile-holiday-time" />
 
                                             <div className="week-mobile-holiday-pill">
@@ -692,7 +670,6 @@ export default function WeekView({
                                         </div>
                                     ))}
 
-                                    {/* обычные события с временем слева */}
                                     {eventsForDay.map((ev) => {
                                         const bg = hexToRgba(
                                             ev.color || '#C5BDF0',
@@ -765,7 +742,6 @@ export default function WeekView({
                         })}
                     </div>
 
-                    {/* фуллскрін карточка ивента */}
                     {openInfo && (
                         <div
                             className="event-popover-overlay"
@@ -782,7 +758,6 @@ export default function WeekView({
                 </>
             ) : (
                 <>
-                    {/* DESKTOP: как было — шапка + сетка 7x24 */}
                     <div className="week-header">
                         <div className="time-header"></div>
                         {days.map((d, i) => (

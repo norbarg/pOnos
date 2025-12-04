@@ -1,4 +1,3 @@
-// auth.middleware.js
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
@@ -15,7 +14,6 @@ export async function requireAuth(req, res, next) {
         const user = await User.findById(payload.sub).lean();
         if (!user) return res.status(401).json({ error: 'User not found' });
 
-        // auth.middleware.js
         req.user = {
             id: user._id.toString(),
             email: user.email,

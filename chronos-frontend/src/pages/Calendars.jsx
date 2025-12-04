@@ -1,4 +1,3 @@
-// File: src/pages/Calendars.jsx
 import React, {
     useEffect,
     useMemo,
@@ -20,14 +19,12 @@ import icFilter from '../assets/filter.png';
 import icFilterOn from '../assets/filter_on.png';
 import icSearch from '../assets/search.png';
 import icGear from '../assets/gear.png';
-import icSendArrow from '../assets/arrow_up_right.png'; // или .svg
+import icSendArrow from '../assets/arrow_up_right.png';
 
-// ключи для localStorage
 const LS_VIEW = 'calendar:viewMode';
 const LS_DATE = 'calendar:currentDate';
 const SS_RESET = 'calendar:_reset_on_enter';
 
-/** utils */
 function slugify(s) {
     return String(s || '')
         .trim()
@@ -108,7 +105,7 @@ function WeekPickerPopover({ open, currentDate, onClose, onSelectWeek }) {
     const m = view.getMonth();
 
     const firstOfMonth = new Date(y, m, 1);
-    const firstGrid = startOfWeekLocal(firstOfMonth); // с понедельника
+    const firstGrid = startOfWeekLocal(firstOfMonth);
     const days = Array.from(
         { length: 42 },
         (_, i) =>
@@ -154,7 +151,6 @@ function WeekPickerPopover({ open, currentDate, onClose, onSelectWeek }) {
                 ))}
             </div>
 
-            {/* 6 строк-«недель» */}
             <div className="weekpicker-weeks">
                 {Array.from({ length: 6 }, (_, row) => {
                     const rowDays = days.slice(row * 7, row * 7 + 7);
@@ -195,7 +191,6 @@ function WeekPickerPopover({ open, currentDate, onClose, onSelectWeek }) {
     );
 }
 
-/** Filter popover (общий для всех режимов) */
 function FilterPopover({
     open,
     viewMode,
@@ -208,7 +203,6 @@ function FilterPopover({
 }) {
     const popRef = React.useRef(null);
 
-    // click-away
     React.useEffect(() => {
         if (!open) return;
         const onDocDown = (e) => {
@@ -224,7 +218,6 @@ function FilterPopover({
             document.removeEventListener('pointerdown', onDocDown, true);
     }, [open, onClose, anchorRef]);
 
-    // Esc
     React.useEffect(() => {
         if (!open) return;
         const onKey = (e) => e.key === 'Escape' && onClose?.();
@@ -232,7 +225,6 @@ function FilterPopover({
         return () => document.removeEventListener('keydown', onKey);
     }, [open, onClose]);
 
-    // 👉 если закрыт — не рендерим вовсе
     if (!open) return null;
 
     const Title = ({ children, right }) => (
@@ -268,7 +260,7 @@ function FilterPopover({
                     right={
                         <button
                             className="link"
-                            onClick={() => setCategories(allSlugs)} // RESET = усі з беку
+                            onClick={() => setCategories(allSlugs)}
                         >
                             Clear
                         </button>
@@ -291,7 +283,6 @@ function FilterPopover({
                                     )
                                 }
                             />
-                            {/* Інлайн-варіанти кольорів через CSS-перемінні */}
                             <span
                                 className="tag"
                                 data-cat={cat.slug}
@@ -347,9 +338,6 @@ export default function CalendarsPage() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // 2) Используем ли сохранённое из LS при этом входе?
-    // Если был «resetOnEnter» — НЕ используем LS (стартуем Week + сегодня).
-    // Если не было — используем LS (первый вход, deep-link, reload).
     const useStored = !resetOnEnter;
 
     const [viewMode, setViewMode] = useState(() => {
@@ -399,7 +387,7 @@ export default function CalendarsPage() {
     const gearBtnRef = useRef(null);
     const [accessOpen, setAccessOpen] = useState(false);
     const accessPopRef = useRef(null);
-    const [accessPos, setAccessPos] = useState({ top: 56, left: 0 }); // для позиционирования
+    const [accessPos, setAccessPos] = useState({ top: 56, left: 0 });
 
     const loadMembers = useCallback(async () => {
         if (!mainCal) return;
@@ -413,15 +401,14 @@ export default function CalendarsPage() {
                         rawAvatar && rawAvatar.startsWith('http')
                             ? rawAvatar
                             : rawAvatar
-                            ? absUrl(rawAvatar) // 👈 переводим /uploads/... в полный URL
+                            ? absUrl(rawAvatar)
                             : null;
 
                     return {
                         id: x.id,
                         email: x.email,
                         name: x.name,
-                        avatar, // 👈 сюда
-                        // нормализуем в permission: 'owner' | 'edit' | 'view'
+                        avatar,
                         permission:
                             x.role === 'owner'
                                 ? 'owner'
@@ -444,12 +431,10 @@ export default function CalendarsPage() {
         color: c.color ?? c.hex ?? '#e9d5ff',
     });
 
-    // если пришли с профиля (navigate('/calendars', { state: { ... } }))
     useEffect(() => {
         const st = location.state;
         if (!st) return;
 
-        // 1) если передали дату события — ставим её как currentDate
         if (st.focusDate) {
             const d = new Date(st.focusDate);
             if (!Number.isNaN(d.getTime())) {
@@ -457,7 +442,6 @@ export default function CalendarsPage() {
             }
         }
 
-        // 2) если явно передали режим (week/month/year) — применяем
         if (
             st.view &&
             (st.view === 'week' || st.view === 'month' || st.view === 'year')
@@ -469,10 +453,9 @@ export default function CalendarsPage() {
     useEffect(() => {
         (async () => {
             try {
-                const { data } = await api.get('/categories'); // твій ендпойнт
+                const { data } = await api.get('/categories');
                 const raw = data?.categories ?? data ?? [];
 
-                // ❌ выкидываем системную категорию праздников
                 const filtered = raw.filter((c) => {
                     const builtIn = (c.builtInKey || c.key || '').toLowerCase();
                     if (builtIn === 'holiday') return false;
@@ -490,7 +473,6 @@ export default function CalendarsPage() {
                 const list = filtered.map(normalizeCategory);
                 setCatDefs(list);
             } catch (e) {
-                // запасні дефолти, якщо бек недоступний
                 setCatDefs([
                     {
                         slug: 'arrangement',
@@ -504,7 +486,6 @@ export default function CalendarsPage() {
         })();
     }, []);
 
-    // NEW: коли оновився довідник категорій — виставляємо вибрані (за замовчуванням: усі)
     useEffect(() => {
         if (!catDefs.length) return;
         setCategories((prev) => {
@@ -523,7 +504,7 @@ export default function CalendarsPage() {
               });
 
     const loadedMonthsRef = useRef(new Set());
-    const autoNavRef = useRef(false); // игнорировать репорты от MonthView, пока идёт авто-навигация
+    const autoNavRef = useRef(false);
 
     useEffect(() => {
         (async () => {
@@ -560,8 +541,6 @@ export default function CalendarsPage() {
             const y = currentDate.getFullYear();
             const m = currentDate.getMonth();
 
-            // ВАЖНО: всегда грузим видимый месяц,
-            // не смотрим тут на loadedMonthsRef
             loadMonth(y, m);
         }
     }, [mainCal, holidayCal, currentDate, viewMode]);
@@ -610,13 +589,13 @@ export default function CalendarsPage() {
             start: new Date(ev.start),
             end: new Date(ev.end),
             category: cat,
-            color, // ← ← ← ДОБАВЛЕНО!
+            color,
             isHoliday,
         };
     }
 
     async function loadRange(from, to, replace = false) {
-        if (!mainCal) return; // ← добавь это
+        if (!mainCal) return;
         try {
             const params = {
                 from: fmtISO(from),
@@ -647,7 +626,7 @@ export default function CalendarsPage() {
     }
 
     async function loadMonth(year, month) {
-        if (!mainCal) return; // ← и здесь тоже
+        if (!mainCal) return;
         const from = monthFirstDay(year, month),
             to = addDays(monthLastDay(year, month), 1);
         await loadRange(from, to, false);
@@ -662,17 +641,16 @@ export default function CalendarsPage() {
         const btn = gearBtnRef.current;
         if (!btn) return;
         const r = btn.getBoundingClientRect();
-        const width = 420; // ширина поповера из CSS
+        const width = 420;
         const gap = 8;
         const top = r.bottom + gap;
         const left = Math.min(
             window.innerWidth - width - 16,
-            Math.max(16, r.right - width) // выравниваем правый край к кнопке
+            Math.max(16, r.right - width)
         );
         setAccessPos({ top, left });
     }, [accessOpen]);
 
-    // click-away для ПОИСКА
     useEffect(() => {
         if (!searchOpen) return;
         const onDoc = (e) => {
@@ -686,7 +664,6 @@ export default function CalendarsPage() {
         return () => document.removeEventListener('pointerdown', onDoc, true);
     }, [searchOpen]);
 
-    // Esc закрывает поповер поиска
     useEffect(() => {
         if (!searchOpen) return;
         const onKey = (e) => e.key === 'Escape' && setSearchOpen(false);
@@ -694,17 +671,15 @@ export default function CalendarsPage() {
         return () => document.removeEventListener('keydown', onKey);
     }, [searchOpen]);
 
-    // автофокус на инпуте в поповере
     useEffect(() => {
         if (searchOpen && searchInputRef.current) {
             searchInputRef.current.focus();
         }
     }, [searchOpen]);
 
-    // стрелки: для month — шаг по МЕСЯЦАМ; для week — по НЕДЕЛЯМ
     function handlePrevNext(delta) {
         if (viewMode === 'month') {
-            autoNavRef.current = true; // ← включаем «глушилку»
+            autoNavRef.current = true;
             setCurrentDate((d) => addMonths(d, delta));
         } else {
             setCurrentDate((d) => addDays(d, delta * 7));
@@ -733,14 +708,12 @@ export default function CalendarsPage() {
             email,
             role: perm === 'edit' ? 'editor' : 'member',
         });
-        // тепер members не зміняться до accept → можна не перезавантажувати
-        return data; // щоб AccessPanel міг показати “sent/alreadyInvited”
+        return data;
     }
     async function changePermission(userId, perm) {
         if (!mainCal) return;
         const targetId = String(userId);
         const nextRole = perm === 'edit' ? 'editor' : 'member';
-        // оптимистичное обновление
         setSharedWith((prev) =>
             prev.map((u) =>
                 String(u.id) === targetId
@@ -752,14 +725,12 @@ export default function CalendarsPage() {
             await api.patch(`/calendars/${mainCal.id}/members/${targetId}`, {
                 role: nextRole,
             });
-            // гарантируем консистентность с сервером
             await loadMembers();
         } catch (e) {
             console.error(
                 'changePermission error:',
                 e?.response?.data || e.message
             );
-            // откат к серверному состоянию
             await loadMembers();
         }
     }
@@ -776,7 +747,6 @@ export default function CalendarsPage() {
         const allKnownCats = new Set((catDefs || []).map((c) => c.slug));
 
         return events.filter((e) => {
-            // 🎉 Праздники всегда видимы, вне поиска и категорий
             if (e.isHoliday) return true;
 
             const text = (
@@ -793,17 +763,12 @@ export default function CalendarsPage() {
 
             const isKnown = evSlug && allKnownCats.has(evSlug);
 
-            // ЛОГИКА:
-            // 1) если фильтр пустой — показываем всё
-            // 2) если категория известная и выбрана — показываем
-            // 3) если категория НЕИЗВЕСТНА (чужая кастомная) — ТОЖЕ показываем
             const catOK = !hasCatFilter || catsSet.has(evSlug) || !isKnown;
 
             return catOK && (!q || text.includes(q));
         });
     }, [events, searchQuery, categories]);
 
-    // Просто дебаг: что реально прилетает и что в итоге видно
     useEffect(() => {
         console.log('RAW events from API:', events);
         console.log('visibleEvents after filters:', visibleEvents);
@@ -824,10 +789,7 @@ export default function CalendarsPage() {
             {/* App bar */}
             <div className="calendar-appbar">
                 <div className="brand">
-                    <span
-                        className="brand__name"
-                        title={calTitle} // подсказка при hover
-                    >
+                    <span className="brand__name" title={calTitle}>
                         {calTitle}
                     </span>
                     <img className="brand__logo" src={appIcon} alt="app" />
@@ -865,7 +827,7 @@ export default function CalendarsPage() {
                         categories={categories}
                         setCategories={setCategories}
                         categoryDefs={catDefs}
-                        anchorRef={filterBtnRef} // ← NEW
+                        anchorRef={filterBtnRef}
                         onClose={() => setFilterOpen(false)}
                     />
 
@@ -928,7 +890,6 @@ export default function CalendarsPage() {
                 <div className="hdr-right">
                     {(viewMode === 'week' || viewMode === 'month') && (
                         <>
-                            {/* Десктопный инпут поиска */}
                             {!isMobile && (
                                 <div className="searchbox searchbox--inline">
                                     <input
@@ -947,7 +908,6 @@ export default function CalendarsPage() {
                                 </div>
                             )}
 
-                            {/* Мобильная иконка + поповер */}
                             {isMobile && (
                                 <>
                                     <button
@@ -1025,7 +985,7 @@ export default function CalendarsPage() {
                         events={visibleEvents}
                         filters={categories}
                         onDateSelect={(d) => setCurrentDate(d)}
-                        calendarId={mainCal?.id} // 👈 для предвыбора календаря
+                        calendarId={mainCal?.id}
                     />
                 )}
                 {viewMode === 'month' && (
@@ -1038,7 +998,7 @@ export default function CalendarsPage() {
                         filters={categories}
                         onMonthChange={handleMonthChange}
                         onViewportMonthChange={(y, m) => {
-                            if (autoNavRef.current) return; // ← не даём «мигать» заголовку
+                            if (autoNavRef.current) return;
                             const d = new Date(currentDate);
                             d.setFullYear(y);
                             d.setMonth(m);
@@ -1046,7 +1006,6 @@ export default function CalendarsPage() {
                             setCurrentDate(d);
                         }}
                         onAutoScrollDone={() => {
-                            // ← MonthView сообщает, что всё докрутилось
                             autoNavRef.current = false;
                         }}
                         onDateSelect={(d) => {

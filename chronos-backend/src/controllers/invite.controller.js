@@ -1,4 +1,3 @@
-// src/controllers/invite.controller.js
 import Invitation from '../models/Invitation.js';
 import {
     acceptInviteByToken,
@@ -10,7 +9,6 @@ import Event from '../models/Event.js';
 import mongoose from 'mongoose';
 import { acceptEventInviteByToken } from '../services/eventInvite.service.js';
 
-// owner-only: список інвайтів календаря
 export async function listCalendarInvites(req, res) {
     const { calendar } = req;
     const list = await Invitation.find({ calendar: calendar._id })
@@ -29,11 +27,10 @@ export async function listCalendarInvites(req, res) {
     });
 }
 
-// owner-only: повторна відправка
 export async function resendCalendarInvite(req, res) {
     const { inviteId } = req.params;
     try {
-        const inv = await resendInvite(inviteId); // ← сервіс приймає тільки inviteId
+        const inv = await resendInvite(inviteId);
         return res.json({
             ok: true,
             invite: { id: String(inv._id), status: inv.status },
@@ -43,11 +40,10 @@ export async function resendCalendarInvite(req, res) {
     }
 }
 
-// owner-only: відкликання
 export async function revokeCalendarInvite(req, res) {
     const { inviteId } = req.params;
     try {
-        const inv = await revokeInvite(inviteId); // ← сервіс приймає тільки inviteId
+        const inv = await revokeInvite(inviteId);
         return res.json({
             ok: true,
             invite: { id: String(inv._id), status: inv.status },
@@ -57,7 +53,6 @@ export async function revokeCalendarInvite(req, res) {
     }
 }
 
-// user: прийняти інвайт (календар або подія) + опц. placement для події
 export async function acceptInvite(req, res) {
     const { token, calendarId } = req.body || {};
     const tok = String(token || '').trim();

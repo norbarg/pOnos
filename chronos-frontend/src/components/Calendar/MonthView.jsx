@@ -1,22 +1,19 @@
-// chronos-frontend/src/components/Calendar/MonthView.jsx
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // ← ДОБАВИЛИ
+import { useNavigate } from 'react-router-dom';
 import '../../styles/Calendar.css';
 import catArrangement from '../../assets/cat_arrangement.png';
 import catReminder from '../../assets/cat_reminder.png';
 import catTask from '../../assets/cat_task.png';
-import holidayIcon from '../../assets/holiday_icon.png'; // <-- путь подставь свой
+import holidayIcon from '../../assets/holiday_icon.png';
 
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-// иконки только для стандартных категорий
 const ICON_BY_CAT = {
     arrangement: catArrangement,
     reminder: catReminder,
     task: catTask,
 };
 
-// базовые цвета из темы (если у события нет собственного color)
 const CAT_BG = {
     arrangement: 'var(--arr-bg)',
     reminder: 'var(--rem-bg)',
@@ -43,7 +40,7 @@ function endOfMonth(y, m) {
 }
 function startOfGrid(y, m) {
     const d = new Date(y, m, 1);
-    const wd = (d.getDay() + 6) % 7; // Mon=0
+    const wd = (d.getDay() + 6) % 7;
     d.setDate(d.getDate() - wd);
     d.setHours(0, 0, 0, 0);
     return d;
@@ -65,7 +62,6 @@ function hexToRgba(hex, alpha = 1) {
 
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
-// offset внутри скролл-контейнера
 function offsetTopWithin(elContainer, el) {
     if (!elContainer || !el) return 0;
     const c = elContainer.getBoundingClientRect();
@@ -76,12 +72,11 @@ function monthHeadH(container) {
     const head = container?.querySelector('.month-weekdays');
     return head ? head.getBoundingClientRect().height : 0;
 }
-// какой .month-block сейчас «доминирует» в вьюпорте по площади пересечения
 function dominantMonthEl(container) {
     if (!container) return null;
 
-    const H = monthHeadH(container); // высота липкой шапки Mon..Sun
-    const viewTop = H; // видимая область начинается под шапкой
+    const H = monthHeadH(container);
+    const viewTop = H;
     const viewBottom = container.clientHeight;
 
     const blocks = container.querySelectorAll('.month-block');
@@ -91,7 +86,7 @@ function dominantMonthEl(container) {
 
     blocks.forEach((b) => {
         const rect = b.getBoundingClientRect();
-        const top = offsetTopWithin(container, b); // top в координатах контейнера
+        const top = offsetTopWithin(container, b);
         const bottom = top + rect.height;
 
         const overlap = Math.max(
@@ -100,7 +95,7 @@ function dominantMonthEl(container) {
         );
         if (
             overlap > bestOverlap ||
-            (overlap === bestOverlap && top < bestTop) // тай-брейк — тот, что выше
+            (overlap === bestOverlap && top < bestTop)
         ) {
             best = b;
             bestOverlap = overlap;
@@ -114,12 +109,12 @@ function dominantMonthEl(container) {
 export default function MonthView({
     initialYear,
     initialMonth,
-    activeYear, // из хедера
-    activeMonth, // из хедера
+    activeYear,
+    activeMonth,
     events = [],
     onMonthChange,
-    onViewportMonthChange, // обновлять заголовок при скролле
-    onAutoScrollDone, // ← НОВОЕ: сообщаем родителю, что авто-скролл завершён
+    onViewportMonthChange,
+    onAutoScrollDone,
     onDateSelect,
 }) {
     const containerRef = useRef(null);
@@ -143,20 +138,17 @@ export default function MonthView({
     const lastScrollTopRef = useRef(0);
     const lastTopEdgeRef = useRef(null);
     const lastBottomEdgeRef = useRef(null);
-    const headerLockRef = useRef(false); // блокируем onViewportMonthChange во время авто-скролла
+    const headerLockRef = useRef(false);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // стартовая подгрузка
     useEffect(() => {
         for (const n of initialNs) {
             const [y, m] = fromN(n);
             onMonthChange?.(y, m);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // стартовая прокрутка — показываем current
     useEffect(() => {
         const el = containerRef.current;
         if (!el || mountedRef.current) return;
@@ -166,7 +158,7 @@ export default function MonthView({
                 ? firstBlock.getBoundingClientRect().height
                 : 0;
             const hHead = monthHeadH(el);
-            el.scrollTop = hHead + hBlock; // было: el.scrollTop = h;
+            el.scrollTop = hHead + hBlock;
             lastScrollTopRef.current = el.scrollTop;
             busyRef.current = false;
             mountedRef.current = true;
@@ -181,7 +173,6 @@ export default function MonthView({
         });
     }, []);
 
-    // включить в список недостающий месяц
     function ensureContains(targetN) {
         setNs((list) => {
             if (list.includes(targetN)) return list;
@@ -201,7 +192,6 @@ export default function MonthView({
         });
     }
 
-    // автоскролл по стрелкам (плавно и вперёд, и назад)
     useEffect(() => {
         if (activeYear == null || activeMonth == null) return;
         if (!mountedRef.current) return;
@@ -217,12 +207,11 @@ export default function MonthView({
             if (nTop === targetN) return;
         }
 
-        // будем ли препендить?
         const needPrepend =
             nsRef.current.length > 0 && targetN < nsRef.current[0];
         const beforeHeight = needPrepend ? el.scrollHeight : 0;
 
-        headerLockRef.current = true; // на время авто-скролла хедер «молчит»
+        headerLockRef.current = true;
         ensureContains(targetN);
         busyRef.current = true;
 
@@ -235,9 +224,9 @@ export default function MonthView({
             lastReportedRef.current = targetN;
 
             const [y, m] = fromN(targetN);
-            onViewportMonthChange?.(y, m); // финально сообщаем целевой месяц
+            onViewportMonthChange?.(y, m);
             headerLockRef.current = false;
-            onAutoScrollDone?.(); // ← сообщаем родителю: можно снова слушать скролл
+            onAutoScrollDone?.();
         };
 
         const tick = () => {
@@ -254,7 +243,7 @@ export default function MonthView({
             }
 
             const hHead = monthHeadH(el);
-            const off = Math.round(offsetTopWithin(el, block) - hHead); // было без - hHead
+            const off = Math.round(offsetTopWithin(el, block) - hHead);
             if (Math.abs(off) > 1) {
                 el.scrollTo({ top: el.scrollTop + off, behavior: 'smooth' });
                 setTimeout(finish, 360);
@@ -264,10 +253,8 @@ export default function MonthView({
         };
 
         requestAnimationFrame(tick);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeYear, activeMonth]);
 
-    // бесконечный скролл + обновление заголовка
     useEffect(() => {
         const el = containerRef.current;
         if (!el) return;
@@ -302,7 +289,6 @@ export default function MonthView({
             if (!nearTop) lastTopEdgeRef.current = null;
             if (!nearBottom) lastBottomEdgeRef.current = null;
 
-            // вверх
             if (nearTop && dir === 'up') {
                 const cur = nsRef.current;
                 if (!cur.length) return;
@@ -340,7 +326,6 @@ export default function MonthView({
                 return;
             }
 
-            // вниз
             if (nearBottom && dir === 'down') {
                 const cur = nsRef.current;
                 if (!cur.length) return;
@@ -370,7 +355,6 @@ export default function MonthView({
                 return;
             }
 
-            // обычная прокрутка
             notifyTopMonth();
         };
 
@@ -378,11 +362,10 @@ export default function MonthView({
         return () => el.removeEventListener('scroll', onScroll);
     }, [onMonthChange, onViewportMonthChange]);
 
-    // индекс ОБЫЧНЫХ событий по дню
     const eventsIndex = useMemo(() => {
         const map = new Map();
         for (const ev of events) {
-            if (ev.isHoliday) continue; // праздники — отдельно
+            if (ev.isHoliday) continue;
             const d = new Date(ev.start);
             const key = d.toDateString();
             if (!map.has(key)) map.set(key, []);
@@ -391,7 +374,6 @@ export default function MonthView({
         return map;
     }, [events]);
 
-    // индекс ПРАЗДНИКОВ по дню
     const holidaysIndex = useMemo(() => {
         const map = new Map();
         for (const ev of events) {
@@ -508,7 +490,6 @@ export default function MonthView({
                                             {inMonth ? d.getDate() : ''}
                                         </div>
 
-                                        {/* 🔹 Название праздника сверху, на одной высоте с числом */}
                                         {inMonth &&
                                             isHolidayDay &&
                                             mainHoliday && (
@@ -556,7 +537,6 @@ export default function MonthView({
 
                                                     return (
                                                         <>
-                                                            {/* если захочешь "+N" – можно вернуть extraCount */}
                                                             {visible.map(
                                                                 (e, idx) => {
                                                                     const baseBg =

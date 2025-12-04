@@ -1,10 +1,6 @@
 import mongoose from 'mongoose';
 const { Schema, model, Types } = mongoose;
 
-/**
- * Категория: либо общая (user=null, builtInKey из фиксированного списка),
- * либо пользовательская (user=ObjectId). Дубликаты названий разрешены.
- */
 const categorySchema = new Schema(
     {
         title: { type: String, required: true, trim: true },
@@ -20,5 +16,4 @@ const categorySchema = new Schema(
     { timestamps: true }
 );
 
-// никаких unique-индексов по названию
 export default model('Category', categorySchema);

@@ -1,4 +1,3 @@
-// File: src/shared/Sidebar.jsx
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -47,7 +46,6 @@ export default function Sidebar() {
     const userInitial = firstLetter(user);
     const [avatarError, setAvatarError] = useState(false);
 
-    // порядок сверху: profile → calendars → event
     const items = useMemo(
         () => [
             { key: 'profile', to: '/profile', kind: 'avatar' },
@@ -74,7 +72,6 @@ export default function Sidebar() {
     );
     const idx = activeIndex >= 0 ? activeIndex : 0;
 
-    // ===== slider positioning by real DOM =====
     const navRef = useRef(null);
     const sliderRef = useRef(null);
     const [sliderTop, setSliderTop] = useState(0);
@@ -88,14 +85,12 @@ export default function Sidebar() {
         const target = links[idx];
         if (!target) return;
 
-        // координата относительно nav
         const top =
             target.offsetTop +
             (target.clientHeight - sliderEl.clientHeight) / 2;
         setSliderTop(top);
     };
 
-    // пересчитываем при смене роута/темы/аватара и при ресайзе
     useLayoutEffect(() => {
         placeSlider();
     }, [pathname, idx]);
@@ -104,12 +99,9 @@ export default function Sidebar() {
         window.addEventListener('resize', onResize);
         return () => window.removeEventListener('resize', onResize);
     }, []);
-    // если аватар загрузился/упал — высота пункта могла измениться
     const onAvatarLoadOrError = () => {
         setTimeout(placeSlider, 0);
     };
-
-    // ===== theme toggle =====
     const [theme, setTheme] = useState(
         document.documentElement.dataset.theme || 'dark'
     );
@@ -118,7 +110,6 @@ export default function Sidebar() {
         const t = saved === 'light' || saved === 'dark' ? saved : 'dark';
         document.documentElement.dataset.theme = t;
         setTheme(t);
-        // на случай смены системного шрифта/масштаба
         setTimeout(placeSlider, 0);
     }, []);
     const onToggleTheme = () => {
@@ -133,7 +124,6 @@ export default function Sidebar() {
         <aside className="side">
             <div className="side__inner">
                 <nav ref={navRef} className="side__nav">
-                    {/* ползунок теперь внутри nav и позиционируется относительно него */}
                     <div
                         ref={sliderRef}
                         className="side__slider"
@@ -198,7 +188,6 @@ export default function Sidebar() {
                     ))}
                 </nav>
 
-                {/* низ */}
                 <div className="side__bottom">
                     <button
                         className="side__tool side__tool--theme"

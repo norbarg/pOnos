@@ -24,24 +24,21 @@ import {
 const router = Router();
 router.use(requireAuth);
 
-// в рамках календаря
 router.get('/calendars/:calId/events', canAccessCalendar, listCalendarEvents);
 router.post('/calendars/:calId/events', canAccessCalendar, createEvent);
 
-// по id
 router.get('/events/:id', loadEvent, getEvent);
 router.put('/events/:id', loadEvent, updateEvent);
 router.delete('/events/:id', loadEvent, deleteEvent);
 
-// участники и размещения
 router.get('/events/:id/participants', loadEvent, listParticipants);
-router.post('/events/:id/participants', loadEvent, addParticipant); // body: { userId, calendarId? }
+router.post('/events/:id/participants', loadEvent, addParticipant);
 router.delete('/events/:id/participants/:userId', loadEvent, removeParticipant);
 
-router.post('/events/:id/placement', loadEvent, setMyPlacement); // body: { calendarId }
+router.post('/events/:id/placement', loadEvent, setMyPlacement);
 router.post('/events/:id/leave', loadEvent, leaveEvent);
 
-router.post('/events/:id/invite', loadEvent, inviteByEmail); // body: { email }
+router.post('/events/:id/invite', loadEvent, inviteByEmail);
 router.get('/events/:id/invites', loadEvent, listEventInvites);
 router.post(
     '/events/:id/invites/:inviteId/resend',

@@ -1,16 +1,14 @@
-// File: src/components/Calendar/YearView.jsx
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import '../../styles/Calendar.css';
 
-const ROW = 4; // 4 года в ряд
-const CHUNK_ROWS = 3; // подгружаем по 3 ряда
+const ROW = 4;
+const CHUNK_ROWS = 3;
 const TOP_THRESHOLD = 16;
 const BOTTOM_THRESHOLD = 160;
 
 const rowStartFor = (year) => year - (year % ROW);
 const makeRow = (start) => [start, start + 1, start + 2, start + 3];
 
-// смещение элемента относительно контейнера-скроллера
 const offsetTopWithin = (elContainer, el) => {
     if (!elContainer || !el) return 0;
     const c = elContainer.getBoundingClientRect();
@@ -18,7 +16,6 @@ const offsetTopWithin = (elContainer, el) => {
     return r.top - c.top;
 };
 
-// находим первую видимую строку (якорь)
 const firstVisibleRowEl = (el) => {
     if (!el) return null;
     const rows = el.querySelectorAll('.year-row');
@@ -31,7 +28,6 @@ const firstVisibleRowEl = (el) => {
             bestTop = t;
         }
     }
-    // если все выше верха — вернём самую верхнюю как fallback
     return best || rows[0] || null;
 };
 
@@ -52,7 +48,6 @@ export default function YearView({ initialYear, onYearSelect }) {
         rowsRef.current = rows;
     }, [rows]);
 
-    // временно перехватываем фокус — чтоб браузер не скроллил к кнопке
     const stealFocusFromCells = () => {
         const el = containerRef.current;
         if (!el) return;
@@ -75,13 +70,12 @@ export default function YearView({ initialYear, onYearSelect }) {
             const anchorSel = `[data-rowstart="${startRow}"]`;
             const anchorEl = el.querySelector(anchorSel);
             const top = offsetTopWithin(el, anchorEl);
-            el.scrollTop += top; // ставим ряд initialYear наверх
+            el.scrollTop += top;
             busyRef.current = false;
             mountedRef.current = true;
         });
     }, [startRow]);
 
-    // чтобы не добавлять один и тот же «верхний пакет» несколько раз подряд
     const lastTopMinRef = useRef(null);
 
     useEffect(() => {
@@ -96,30 +90,25 @@ export default function YearView({ initialYear, onYearSelect }) {
                 el.scrollTop + el.clientHeight >=
                 el.scrollHeight - BOTTOM_THRESHOLD;
 
-            // ВВЕРХ: якоримся по первой видимой строке и компенсируем строго по якорю
             if (nearTop) {
                 const cur = rowsRef.current;
                 if (!cur.length) return;
                 const minStart = cur[0];
 
-                // антидребезг: если мы уже добавляли над этим же minStart — не повторяем
                 if (lastTopMinRef.current === minStart) return;
 
-                // якорь: запоминаем элемент и его смещение
                 const anchorEl = firstVisibleRowEl(el);
                 const anchorKey = anchorEl?.dataset?.rowstart;
                 const anchorBefore = anchorEl
                     ? offsetTopWithin(el, anchorEl)
                     : 0;
 
-                // формируем список «к добавлению» (3 ряда выше текущего минимума)
                 const toAdd = [];
                 for (let i = CHUNK_ROWS; i >= 1; i--) {
                     const r = minStart - i * ROW;
                     if (!cur.includes(r) && !toAdd.includes(r)) toAdd.push(r);
                 }
                 if (!toAdd.length) {
-                    // чтобы не зациклиться на самом верху — чуть оттолкнёмся
                     if (el.scrollTop <= TOP_THRESHOLD)
                         el.scrollTop = TOP_THRESHOLD + 1;
                     return;
@@ -131,7 +120,6 @@ export default function YearView({ initialYear, onYearSelect }) {
 
                 setRows((list) => [...toAdd, ...list]);
 
-                // после рендера удерживаем ровно ту же первую видимую строку в том же месте
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
                         if (anchorKey) {
@@ -154,7 +142,6 @@ export default function YearView({ initialYear, onYearSelect }) {
                 return;
             }
 
-            // ВНИЗ: просто доклеиваем пачку — компенсировать не нужно
             if (nearBottom) {
                 const cur = rowsRef.current;
                 if (!cur.length) return;

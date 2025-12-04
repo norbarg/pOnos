@@ -1,4 +1,3 @@
-// chronos-frontend/src/pages/Profile.jsx
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchMe } from '../features/auth/authActions';
@@ -568,7 +567,6 @@ export default function Profile() {
                                                                 ) => {
                                                                     e.stopPropagation();
                                                                     try {
-                                                                        // чтобы календарь понял, что его просят пересобраться
                                                                         sessionStorage.setItem(
                                                                             CAL_RESET_FLAG,
                                                                             '1'
@@ -579,13 +577,13 @@ export default function Profile() {
                                                                         '/calendars',
                                                                         {
                                                                             state: {
-                                                                                calId: cal.id, // какой календарь открыть
+                                                                                calId: cal.id,
                                                                                 focusDate:
-                                                                                    ev.start, // на какую дату прыгнуть
+                                                                                    ev.start,
                                                                                 focusEventId:
                                                                                     ev.id ||
-                                                                                    ev._id, // на всякий случай, если пригодится
-                                                                                view: 'week', // сразу включить недельный вид
+                                                                                    ev._id,
+                                                                                view: 'week',
                                                                             },
                                                                         }
                                                                     );

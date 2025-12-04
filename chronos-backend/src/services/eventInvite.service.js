@@ -7,7 +7,6 @@ const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 const INVITE_TTL_DAYS = Number(process.env.INVITE_TTL_DAYS || 7);
 
 function buildAcceptLink(token) {
-    // единая точка входа на фронте
     return `${APP_URL}/invite/accept?token=${token}`;
 }
 
@@ -79,7 +78,6 @@ export async function acceptEventInviteByToken({ userId, userEmail, token }) {
     const inv = await EventInvitation.findOne({ token });
     if (!inv) throw new Error('invalid token');
 
-    // если истёк срок – помечаем и выкидываем ошибку
     if (inv.expiresAt && inv.expiresAt.getTime() < Date.now()) {
         if (inv.status === 'pending') {
             inv.status = 'expired';
@@ -88,23 +86,19 @@ export async function acceptEventInviteByToken({ userId, userEmail, token }) {
         throw new Error('invite expired');
     }
 
-    // жёстко запрещаем только revoked/expired
     if (inv.status === 'revoked' || inv.status === 'expired') {
         throw new Error('invite not pending');
     }
 
-    // проверяем, что залогиненный юзер = тот же email, на который ушёл инвайт
     if (String(userEmail).toLowerCase() !== String(inv.email).toLowerCase()) {
         throw new Error('email mismatch');
     }
 
-    // добавляем участника (идемпотентно через $addToSet)
     await Event.updateOne(
         { _id: inv.event },
         { $addToSet: { participants: userId } }
     );
 
-    // если ещё не был accepted – помечаем
     if (inv.status !== 'accepted') {
         inv.status = 'accepted';
         inv.acceptedAt = new Date();
@@ -112,5 +106,5 @@ export async function acceptEventInviteByToken({ userId, userEmail, token }) {
         await inv.save();
     }
 
-    return inv; // контроллеру важно получить inv.event
+    return inv;
 }

@@ -1,4 +1,3 @@
-// chronos-frontend/src/features/auth/authTypes.js
 export const AUTH_LOGIN_REQUEST = 'AUTH/LOGIN_REQUEST';
 export const AUTH_LOGIN_SUCCESS = 'AUTH/LOGIN_SUCCESS';
 export const AUTH_LOGIN_FAILURE = 'AUTH/LOGIN_FAILURE';

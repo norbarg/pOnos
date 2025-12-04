@@ -1,4 +1,3 @@
-// src/features/auth/authActions.js
 import { api } from '../../api/axios';
 import {
     AUTH_LOGIN_REQUEST,
@@ -27,7 +26,6 @@ export const fetchMe = () => async (dispatch) => {
     } catch (err) {
         const status = err?.response?.status;
 
-        // 401 уже поймает axios-интерцептор и выкинет на /login
         dispatch({ type: AUTH_ME_FAILURE, error: null, silent: true });
         return { ok: false, status };
     }
@@ -39,14 +37,12 @@ export const register = (payload) => async (dispatch) => {
         const { data } = await api.post('/auth/register', payload);
         if (data?.token) localStorage.setItem('chronos_token', data.token);
 
-        // если user не пришёл — подтянем
         if (!data?.user) {
             await dispatch(fetchMe());
         } else {
             dispatch({ type: AUTH_REGISTER_SUCCESS, payload: data });
         }
 
-        // если user уже записан fetchMe'ом — просто вернуть ok
         return { ok: true, data };
     } catch (err) {
         const error = err.response?.data?.error || 'Registration failed';

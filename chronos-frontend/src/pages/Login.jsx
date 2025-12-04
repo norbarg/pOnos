@@ -1,4 +1,3 @@
-// chronos-frontend/src/pages/Login.jsx
 import { useDispatch, useSelector } from 'react-redux';
 import { login, fetchMe, clearAuthError } from '../features/auth/authActions';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
@@ -112,7 +111,7 @@ export default function Login() {
                             )}
 
                             <div className="auth__divider">
-                            <span>Or</span>
+                                <span>Or</span>
                             </div>
 
                             <p className="muted">

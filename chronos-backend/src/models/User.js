@@ -1,4 +1,3 @@
-// src/models/User.js
 import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema(
@@ -10,16 +9,15 @@ const userSchema = new mongoose.Schema(
             lowercase: true,
             trim: true,
         },
-        // логин / ник
         name: {
             type: String,
             trim: true,
-            lowercase: true, // нормализуем
-            unique: true, // логин должен быть уникален
-            sparse: true, // чтобы пустые значения не ломали уникальный индекс
+            lowercase: true,
+            unique: true,
+            sparse: true,
             validate: {
                 validator(v) {
-                    if (!v) return true; // можно не задавать сразу
+                    if (!v) return true;
                     return /^[a-z0-9._-]{3,32}$/.test(v);
                 },
                 message:
@@ -27,9 +25,8 @@ const userSchema = new mongoose.Schema(
             },
         },
         passwordHash: { type: String, required: true },
-        avatar: { type: String, trim: true }, // /uploads/avatars/xxx.png
+        avatar: { type: String, trim: true },
 
-        // страна для календаря праздников (ISO 3166-1 alpha-2: UA, PL, DE, ...)
         countryCode: {
             type: String,
             trim: true,

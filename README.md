@@ -24,14 +24,10 @@ Everything can be started together via **Docker Compose** or manually.
     - Backend `.env`
     - Frontend `.env`
 5. Running with Docker (recommended)
-6. Running Locally without Docker
-    -   1. MongoDB / Database
-    -   2. Backend
-    -   3. Frontend
-7. API Overview
-8. Development Notes
-9. Troubleshooting
-10. Summary
+6. API Overview
+7. Development Notes
+8. Troubleshooting
+9. Summary
 
 ---
 
@@ -268,7 +264,7 @@ From there you can:
 -   Create calendars and events
 -   Test invites and reminders (if SMTP is configured)
 
-To stop all containers:
+To stop all containers(and delete):
 
     docker compose down
     # or
@@ -276,119 +272,13 @@ To stop all containers:
 
 ---
 
-## Running Locally without Docker
+Then to stop all containers:
 
-If you prefer to run everything manually:
+    docker compose stop
 
-### 1. MongoDB / Database
+And to run it again:
 
-#### Option A: Local MongoDB (no auth)
-
-1.  Install MongoDB locally (Community Edition).
-2.  Start MongoDB on the default port `27017`.
-3.  Set in `chronos-backend/.env`:
-
-        MONGO_URI=mongodb://localhost:27017/chronos
-
-MongoDB will automatically create the `chronos` database the first time data is written,  
-so you do not need to manually create collections.
-
-If you need a “create DB” step for documentation, in `mongosh`:
-
-        use chronos
-        // DB appears after the first insert, but this is enough as a "create" step
-
-#### Option B: Local MongoDB with auth (like Docker)
-
-If you want the same user/password as in Docker:
-
-1.  Start Mongo with authentication.
-2.  Create root user:
-
-        use admin
-        db.createUser({
-          user: "root",
-          pwd: "example",
-          roles: [{ role: "root", db: "admin" }]
-        })
-
-3.  Then in `chronos-backend/.env`:
-
-        MONGO_URI=mongodb://root:example@localhost:27017/chronos?authSource=admin
-
-### 2. Backend
-
-From the root of the repo:
-
-    cd chronos-backend
-    npm install
-
-Create (or edit) `.env` as described above.
-
-To run in development mode (with automatic restart via `nodemon`):
-
-    npm run dev
-
-To run in production mode:
-
-    npm start
-
-Backend will listen on `PORT` (default `8000`) and expose:
-
--   health check at `/` → `{ ok: true }`
--   main routes (see “API Overview” ниже)
-
-### 3. Frontend
-
-In another terminal:
-
-    cd chronos-frontend
-    npm install
-
-Check/create `chronos-frontend/.env`:
-
-    VITE_API_ORIGIN=http://localhost:8000
-
-Then run the dev server:
-
-    npm run dev
-
-Vite will show something like:
-
-    Local:   http://localhost:5173/
-
-Open it in the browser.  
-Login/register will work against the backend at `http://localhost:8000`.
-
----
-
-## API Overview
-
-(Only a short overview — for full curl examples see `chronos-backend/documentation.md`.)
-
-Base URL (dev):
-
-    http://localhost:8000
-
-### Auth
-
-`POST /auth/register`  
-Body:
-
-    { "email", "password", "passwordConfirm", "name" }
-
-Creates user + main calendar + holidays calendar.
-
-`POST /auth/login`  
-Body:
-
-    { "email", "password" }
-
-Response:
-
-    { "token", "user" }
-
-Frontend saves token to `localStorage.chronos_token`.
+     docker compose start
 
 ### Calendars
 

@@ -35,12 +35,10 @@
     transition: filter 0.15s ease, opacity 0.15s ease;
 }
 
-/* hover фоновый */
 .calMenu__item:hover {
     background: var(--p-card-hover);
 }
 
-/* danger-цвет оставляем красным, он норм в обеих темах */
 .calMenu__item--danger {
     color: #f36d6d;
 }
@@ -73,14 +71,10 @@
     background: var(--p-card-hover);
 }
 
-/* === перекраска иконок по теме === */
-
-/* по умолчанию (dark) — используем как есть */
 .calMenu__item img {
     filter: none;
 }
 
-/* в светлой теме делаем иконки потемнее, чтобы они не были ядовито-светлыми */
 html[data-theme='light'] .calMenu__item img {
     filter: brightness(0.25) contrast(2.2);
 }

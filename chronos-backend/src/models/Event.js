@@ -18,10 +18,8 @@ const eventSchema = new Schema(
 
         category: { type: Types.ObjectId, ref: 'Category', required: true },
 
-        // основной календарь владельца события
         calendar: { type: Types.ObjectId, ref: 'Calendar', required: true },
 
-        // персональные размещения участников
         placements: { type: [placementSchema], default: [] },
 
         owner: { type: Types.ObjectId, ref: 'User', required: true },
@@ -36,7 +34,6 @@ const eventSchema = new Schema(
     { timestamps: true }
 );
 
-// индексы
 eventSchema.index({ calendar: 1, start: 1 });
 eventSchema.index({ owner: 1, start: 1 });
 eventSchema.index({ owner: 1, category: 1 });

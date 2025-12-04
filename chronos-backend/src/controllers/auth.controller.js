@@ -1,4 +1,3 @@
-// src/controllers/auth.controller.js
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
@@ -33,7 +32,6 @@ export async function register(req, res) {
                 ? name.trim().toLowerCase()
                 : undefined;
 
-        // нормализуем страну (по умолчанию UA)
         let normalizedCountry = 'UA';
         if (typeof countryCode === 'string' && countryCode.trim()) {
             const cc = countryCode.trim().toUpperCase();
@@ -42,11 +40,9 @@ export async function register(req, res) {
             }
         }
 
-        // проверка email
         if (await User.findOne({ email: normalizedEmail }).lean()) {
             return res.status(409).json({ error: 'email already in use' });
         }
-        // проверка name (если задан)
         if (normalizedName) {
             if (!/^[a-z0-9._-]{3,32}$/.test(normalizedName)) {
                 return res.status(400).json({ error: 'name-invalid' });
@@ -66,7 +62,6 @@ export async function register(req, res) {
 
         await createMainCalendar(user._id);
 
-        // вместо простого ensureHolidaysCalendar — полноценная сидировка
         await ensureUserHolidaysSeed(user._id, normalizedCountry);
 
         await attachPendingInvitesForEmail(normalizedEmail, user._id);

@@ -18,11 +18,9 @@ function isAvatarPathWithinUploads(p) {
     return typeof p === 'string' && p.startsWith(AVATARS_PUBLIC_BASE + '/');
 }
 
-/** PATCH /users/me  (FormData: avatar?, JSON: username?) */
 export async function updateMe(req, res) {
     const uid = req.user.id;
 
-    // username из JSON-тела (если передан)
     let usernamePatch;
     let namePatch;
     if ('name' in req.body || 'username' in req.body) {
@@ -47,7 +45,6 @@ export async function updateMe(req, res) {
         namePatch = raw || undefined;
     }
 
-    // countryCode из тела (FormData или JSON)
     let countryPatch;
     if ('countryCode' in req.body) {
         const rawCc = String(req.body.countryCode || '')
@@ -59,19 +56,16 @@ export async function updateMe(req, res) {
         countryPatch = rawCc;
     }
 
-    // если пришёл файл
     let avatarPublicPath;
     if (req.file) {
         avatarPublicPath = `${AVATARS_PUBLIC_BASE}/${req.file.filename}`;
     }
 
-    // достанем текущего юзера
     const me = await User.findById(uid);
     if (!me) return res.status(404).json({ error: 'not-found' });
 
     const oldCountry = (me.countryCode || 'UA').toUpperCase();
 
-    // собрать патч
     const patch = {};
     if (typeof namePatch !== 'undefined') patch.name = namePatch;
     if (avatarPublicPath) patch.avatar = avatarPublicPath;
@@ -84,22 +78,17 @@ export async function updateMe(req, res) {
         runValidators: true,
     });
 
-    // удалить старый файл, если был
     if (avatarPublicPath && me.avatar && isAvatarPathWithinUploads(me.avatar)) {
         try {
             const abs = path.join(process.cwd(), me.avatar);
             await fs.unlink(abs).catch(() => {});
-        } catch {
-            /* ignore */
-        }
+        } catch {}
     }
 
-    // 🔥 Если клиент ЯВНО прислал countryCode — пересобираем все праздники
     if (typeof countryPatch !== 'undefined') {
         try {
             const ownerId = new mongoose.Types.ObjectId(uid);
 
-            // Находим ВСЕ системные календари праздников пользователя
             const holidaysCals = await Calendar.find({
                 owner: ownerId,
                 isSystem: true,
@@ -111,16 +100,13 @@ export async function updateMe(req, res) {
             const calIds = holidaysCals.map((c) => c._id);
 
             if (calIds.length) {
-                // Удаляем все события в этих календарях
                 await Event.deleteMany({
                     calendar: { $in: calIds },
                 });
 
-                // И сами календари праздников
                 await Calendar.deleteMany({ _id: { $in: calIds } });
             }
 
-            // Создаём календарь и события для НОВОГО региона
             await ensureUserHolidaysSeed(uid, countryPatch);
 
             console.log(
@@ -131,20 +117,17 @@ export async function updateMe(req, res) {
             );
         } catch (e) {
             console.error('updateMe.region-holidays.error:', e);
-            // профиль уже обновлён, поэтому ответ пользователю не ломаем
         }
     }
 
     return res.json({ user: updated.toJSON() });
 }
 
-/** DELETE /users/me — удалить аккаунт + каскады */
 export async function deleteMe(req, res) {
     const uid = req.user.id;
     const me = await User.findById(uid);
     if (!me) return res.status(404).json({ error: 'not-found' });
 
-    // 1) Собираем связанные сущности
     const [ownedCals, ownedEvents] = await Promise.all([
         Calendar.find({ owner: uid }).select({ _id: 1 }).lean(),
         Event.find({ owner: uid }).select({ _id: 1 }).lean(),
@@ -152,22 +135,17 @@ export async function deleteMe(req, res) {
     const ownedCalIds = ownedCals.map((c) => c._id);
     const ownedEventIds = ownedEvents.map((e) => e._id);
 
-    // 2) Удаляем инвайты событий по ownedEventIds
     if (ownedEventIds.length) {
         await EventInvitation.deleteMany({ event: { $in: ownedEventIds } });
     }
 
-    // 3) Удаляем сами события владельца
     await Event.deleteMany({ owner: uid });
 
-    // 4) Удаляем инвайты календарей, где пользователь — владелец
     if (ownedCalIds.length) {
         await Invitation.deleteMany({ calendar: { $in: ownedCalIds } });
     }
 
-    // 5) Удаляем календари пользователя
     if (ownedCalIds.length) {
-        // также выпиливаем placements с этими календарями у чужих событий
         await Event.updateMany(
             { 'placements.calendar': { $in: ownedCalIds } },
             { $pull: { placements: { calendar: { $in: ownedCalIds } } } }
@@ -175,7 +153,6 @@ export async function deleteMe(req, res) {
         await Calendar.deleteMany({ _id: { $in: ownedCalIds } });
     }
 
-    // 6) Убираем пользователя из участников и placements чужих событий
     await Event.updateMany(
         { $or: [{ participants: uid }, { 'placements.user': uid }] },
         {
@@ -186,7 +163,6 @@ export async function deleteMe(req, res) {
         }
     );
 
-    // 7) Убираем пользователя из чужих календарей (members/roles/notifyActive)
     const unset = {};
     unset[`memberRoles.${uid}`] = 1;
     unset[`notifyActive.${uid}`] = 1;
@@ -195,13 +171,11 @@ export async function deleteMe(req, res) {
         { $pull: { members: uid }, $unset: unset }
     );
 
-    // 8) Чистим инвайты, созданные пользователем (как инвайтер)
     await Promise.all([
         Invitation.deleteMany({ inviter: uid }),
         EventInvitation.deleteMany({ inviter: uid }),
     ]);
 
-    // 9) (опционально) Чистим pending-инвайты, адресованные на email удаляемого
     if (me.email) {
         await Promise.all([
             Invitation.deleteMany({
@@ -215,17 +189,13 @@ export async function deleteMe(req, res) {
         ]);
     }
 
-    // 10) Удаляем аватар с диска (если наш)
     if (me.avatar && isAvatarPathWithinUploads(me.avatar)) {
         try {
             const abs = path.join(process.cwd(), me.avatar);
             await fs.unlink(abs).catch(() => {});
-        } catch {
-            /* ignore */
-        }
+        } catch {}
     }
 
-    // 11) Удаляем самого пользователя
     await User.deleteOne({ _id: uid });
 
     return res.json({ ok: true });

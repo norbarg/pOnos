@@ -38,7 +38,6 @@ export async function createCategory(req, res) {
             },
         });
     } catch (e) {
-        // больше не ловим 11000 — дубликаты разрешены
         return res
             .status(400)
             .json({ error: e.message || 'failed to create category' });
@@ -82,25 +81,20 @@ export async function deleteCategory(req, res) {
     const cat = await Category.findById(id);
     if (!cat) return res.status(404).json({ error: 'not found' });
 
-    // Встроенные трогать нельзя
     if (cat.user === null) {
         return res
             .status(403)
             .json({ error: 'cannot delete built-in category' });
     }
 
-    // Только владелец категории может её удалить
     if (String(cat.user) !== req.user.id) {
         return res.status(403).json({ error: 'forbidden' });
     }
 
-    // 1) Удаляем все события владельца с этой категорией
     const del = await Event.deleteMany({ owner: req.user.id, category: id });
     const deletedEvents = del.deletedCount || 0;
 
-    // 2) Удаляем саму категорию
     await Category.deleteOne({ _id: id });
 
-    // Возвращаем количество удалённых событий (фронт может показать в тосте)
     return res.json({ ok: true, deletedEvents });
 }

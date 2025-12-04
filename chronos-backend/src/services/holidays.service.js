@@ -1,21 +1,15 @@
-// src/services/holidays.service.js
 import mongoose from 'mongoose';
 import Calendar from '../models/Calendar.js';
 import Event from '../models/Event.js';
 import Category from '../models/Category.js';
 
-// date-holidays — CJS, поэтому такая обёртка
 import HolidaysPkg from 'date-holidays';
 const Holidays = HolidaysPkg.default || HolidaysPkg;
 
 const DEFAULT_COUNTRY = 'UA';
-const HOLIDAYS_CAL_COLOR = '#94a3b8'; // спокойный серый
-const HOLIDAYS_CATEGORY_COLOR = '#dc2626'; // красный для праздников
+const HOLIDAYS_CAL_COLOR = '#94a3b8';
+const HOLIDAYS_CATEGORY_COLOR = '#dc2626';
 
-/**
- * Создаёт (если не существует) системный календарь праздников для пользователя.
- * Иммутабельный (isSystem=true, systemType='holidays').
- */
 export async function ensureHolidaysCalendar(
     userId,
     country = DEFAULT_COUNTRY
@@ -36,7 +30,7 @@ export async function ensureHolidaysCalendar(
         owner: userId,
         members: [],
         memberRoles: {},
-        notifyActive: { [userId]: true }, // сразу активен для владельца
+        notifyActive: { [userId]: true },
         isMain: false,
         isSystem: true,
         systemType: 'holidays',
@@ -46,10 +40,6 @@ export async function ensureHolidaysCalendar(
     return created.toObject();
 }
 
-/**
- * Системная категория "Holiday" (общая для всех, user = null).
- * Нужна, т.к. Event.category обязательный.
- */
 export async function ensureHolidayCategory() {
     let cat = await Category.findOne({
         builtInKey: 'holiday',
@@ -62,15 +52,12 @@ export async function ensureHolidayCategory() {
         title: 'Holiday',
         color: HOLIDAYS_CATEGORY_COLOR,
         builtInKey: 'holiday',
-        user: null, // системная категория
+        user: null,
     });
 
     return created.toObject();
 }
 
-/**
- * Инстанс date-holidays для страны.
- */
 function createHolidaysInstance(countryCode) {
     const hd = new Holidays();
     const ok = hd.init(countryCode);
@@ -84,9 +71,6 @@ function createHolidaysInstance(countryCode) {
     return hd;
 }
 
-/**
- * Нормализуем диапазон лет (если не передали — вокруг текущего).
- */
 function normalizeYearRange({ fromYear, toYear }) {
     const nowYear = new Date().getFullYear();
 
@@ -99,24 +83,15 @@ function normalizeYearRange({ fromYear, toYear }) {
     return { fromYear: start, toYear: end };
 }
 
-/**
- * Идемпотентно создаём/добавляем праздники в системный календарь юзера.
- *
- * Сейчас без RRULE:
- *  - каждый праздничный день = отдельное событие на конкретный год
- *  - дубликаты не создаём (по calendar + title + start)
- */
 export async function syncHolidaysForUser({
     userId,
     countryCode = DEFAULT_COUNTRY,
     fromYear,
     toYear,
 }) {
-    // 1) системный календарь + категория
     const holidaysCal = await ensureHolidaysCalendar(userId, countryCode);
     const holidaysCategory = await ensureHolidayCategory();
 
-    // 2) инстанс date-holidays
     const hd = createHolidaysInstance(countryCode);
     if (!hd) {
         console.warn(
@@ -147,9 +122,7 @@ export async function syncHolidaysForUser({
             `[holidays] ${countryCode} ${year}: raw=${yearHolidays.length}`
         );
 
-        // берём несколько типов, а не только строго "public"
         const filtered = yearHolidays.filter((h) => {
-            // 1) тип праздника нам подходит?
             const typeOk = [
                 'public',
                 'bank',
@@ -159,11 +132,8 @@ export async function syncHolidaysForUser({
             ].includes(h.type);
             if (!typeOk) return false;
 
-            // 2) отбрасываем замещающие/переносимые дни
-            // date-holidays часто помечает их флагом substitute
             if (h.substitute === true) return false;
 
-            // 3) плюс подстрахуемся по названию
             if (
                 typeof h.name === 'string' &&
                 /\(замінити день\)/i.test(h.name)
@@ -187,10 +157,6 @@ export async function syncHolidaysForUser({
             const title = h.name;
             const note = h.note || '';
 
-            // идемпотентность
-            // идемпотентность: не создаём второй "тот же праздник",
-            // если по этому календарю уже есть событие с таким же title,
-            // чей интервал пересекается с (start, end)
             const existing = await Event.findOne({
                 calendar: calObjId,
                 title,
@@ -199,7 +165,6 @@ export async function syncHolidaysForUser({
             }).lean();
 
             if (existing) {
-                // уже есть "Новий Рік" примерно в этот же период — пропускаем
                 continue;
             }
 
@@ -219,10 +184,6 @@ export async function syncHolidaysForUser({
     }
 }
 
-/**
- * Удобная обёртка: вызвать один раз при регистрации юзера
- * или, например, при смене региона.
- */
 export async function ensureUserHolidaysSeed(userId, countryCode) {
     const cc = (countryCode || DEFAULT_COUNTRY).toUpperCase();
     await syncHolidaysForUser({

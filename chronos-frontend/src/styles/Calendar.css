@@ -2,7 +2,6 @@
    Calendar (Week / Month / Year) — single clean stylesheet
    ========================================================================== */
 
-/* ---------- palette / tokens ---------- */
 :root {
     --bg: #24253b;
     --bg-theme: #2c2d4c;
@@ -15,53 +14,49 @@
     --bg-pop: #151726;
     --bordeer-pop: #2c2d4c;
 
-    /* event tags (по макету) */
-    --arr-bg: #ffd3ec; /* pink */
+    --arr-bg: #ffd3ec;
     --arr-br: #ffc4e6;
-    --rem-bg: #dbeafe; /* blue */
+    --rem-bg: #dbeafe;
     --rem-br: #cfe0fb;
-    --task-bg: #f3e8d8; /* sand */
+    --task-bg: #f3e8d8;
     --task-br: #e8d9c9;
 
-    --slot-h: 24px; /* 30 минут / строка */
+    --slot-h: 24px;
     --radius-sm: 10px;
     --radius-md: 12px;
     --radius-lg: 16px;
 
     --shadow-pop: 0 10px 30px rgba(17, 24, 39, 0.08);
     --shadow-card: 0 6px 22px rgba(15, 23, 42, 0.06);
-    --appbar-h: 56px; /* высота верхней полосы с логотипом */
-    --header-h: 56px; /* высота панели навигации календаря */
+    --appbar-h: 56px;
+    --header-h: 56px;
 
     --scroll-size: 8px;
-    --scroll-thumb: #96c0be; /* основной цвет ползунка */
-    --scroll-thumb-hover: #5d6294; /* при наведении */
-    --scroll-track: transparent; /* трек почти невидимый */
+    --scroll-thumb: #96c0be;
+    --scroll-thumb-hover: #5d6294;
+    --scroll-track: transparent;
 
-    /* праздники */
     --holiday-bg: rgba(147, 161, 166, 1);
     --holiday-pill-bg: rgba(220, 38, 38, 0.9);
     --holiday-pill-border: rgba(254, 202, 202, 0.95);
 }
 /* ===== LIGHT THEME overrides по data-theme ===== */
 html[data-theme='light'] {
-    --bg: #e8efff; /* общий фон страницы */
-    --bg-theme: #ffffff; /* панели, шапки, слоты */
-    --border: #bbbac0; /* бордеры вместо тёмных */
-    --muted: #94a3b8; /* подписи */
-    --text: #8c8c8c; /* обычный текст */
-    --text-theme: #111827; /* акцентный / заголовки */
-    --hover-theme: #d2d9ea; /* ховер слотов/карт */
+    --bg: #e8efff;
+    --bg-theme: #ffffff;
+    --border: #bbbac0;
+    --muted: #94a3b8;
+    --text: #8c8c8c;
+    --text-theme: #111827;
+    --hover-theme: #d2d9ea;
 
     --bg-pop: #ffffff;
     --bordeer-pop: #bbbac0;
 
-    /* скроллбар */
     --scroll-thumb: #96c0be;
     --scroll-thumb-hover: #5d7381;
     --scroll-track: transparent;
 
-    /* праздники в лайте чуть мягче */
     --holiday-bg: rgba(148, 163, 184, 0.5);
 }
 
@@ -129,7 +124,6 @@ html[data-theme='light'] {
     gap: 35px;
 }
 
-/* ICON BUTTONS */
 .btn-icon {
     display: inline-flex;
     align-items: center;
@@ -167,7 +161,6 @@ html[data-theme='light'] {
     scale: 1.05;
 }
 
-/* PERIOD */
 .period {
     display: flex;
     align-items: end;
@@ -178,7 +171,6 @@ html[data-theme='light'] {
     font-size: 18px;
 }
 
-/* SEARCH */
 .searchbox {
     position: relative;
     width: 200px;
@@ -209,10 +201,9 @@ html[data-theme='light'] {
     pointer-events: none;
 }
 .search-toggle {
-    display: none; /* иконка поиска по умолчанию скрыта (десктоп) */
+    display: none;
 }
 
-/* YEAR HEADER variant keeps same layout */
 .calendar-header--year .nav,
 .calendar-header--year .btn-caret {
     display: none;
@@ -242,7 +233,7 @@ html[data-theme='light'] {
 .week-grid:hover::-webkit-scrollbar,
 .calendar-month::-webkit-scrollbar-track,
 .calendar-year::-webkit-scrollbar-track {
-    width: calc(var(--scroll-size) + 2px); /* чуть шире при ховере */
+    width: calc(var(--scroll-size) + 2px);
 }
 .week-grid::-webkit-scrollbar-track,
 .calendar-month::-webkit-scrollbar-track,
@@ -253,9 +244,9 @@ html[data-theme='light'] {
 .calendar-month::-webkit-scrollbar-thumb,
 .calendar-year::-webkit-scrollbar-thumb {
     background: var(--scroll-thumb);
-    border-radius: 999px; /* «пилюля» */
-    border: 2px solid transparent; /* зазор внутри */
-    background-clip: padding-box; /* чтобы был «кантик» */
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
     min-height: 32px;
 }
@@ -265,11 +256,7 @@ html[data-theme='light'] {
     background: var(--scroll-thumb-hover);
 }
 
-/*  */
-/*  */
-/*  */
 /* ---------- filter popover ---------- */
-/* === Filter popover (как на макете) === */
 .filter-popover {
     position: absolute;
     left: 16px;
@@ -301,7 +288,6 @@ html[data-theme='light'] {
     color: #96c0be;
 }
 
-/* segmented Year / Month / Week */
 .filter-popover .segmented {
     display: flex;
     gap: 5px;
@@ -323,7 +309,6 @@ html[data-theme='light'] {
     color: #96c0be;
 }
 
-/* category tags */
 .filter-popover .tags {
     display: flex;
     flex-wrap: wrap;
@@ -358,13 +343,11 @@ html[data-theme='light'] {
     background: var(--dot);
 }
 
-/* активное состояние чекбокса */
 .filter-popover .tag-wrap input:checked + .tag {
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
     color: var(--text-theme);
 }
 
-/* Clear */
 .filter-popover .link {
     background: none;
     border: none;
@@ -390,7 +373,6 @@ html[data-theme='light'] {
     z-index: 25;
 }
 
-/* внутренние элементы панели (класс .ap у корня) */
 .ap .ap-title {
     font-size: 15px;
     font-weight: 600;
@@ -432,7 +414,7 @@ html[data-theme='light'] {
     cursor: pointer;
 }
 .ap .ap-send img {
-    width: 18px; /* аккуратный размер стрелки */
+    width: 18px;
     height: 18px;
     display: block;
     margin: 0 auto;
@@ -445,8 +427,6 @@ html[data-theme='light'] {
 .ap .ap-send:hover:not(:disabled) {
     box-shadow: 0 0 0 2px rgba(255, 211, 236, 0.35) inset;
 }
-
-/* список */
 
 .ap .ap-row {
     display: flex;
@@ -492,7 +472,6 @@ html[data-theme='light'] {
     text-overflow: ellipsis;
 }
 
-/* роли */
 .ap .ap-role {
     position: relative;
 }
@@ -517,7 +496,6 @@ html[data-theme='light'] {
     opacity: 0.8;
 }
 
-/* меню ролей */
 .ap .ap-menu {
     position: absolute;
     right: 0;
@@ -575,17 +553,14 @@ html[data-theme='light'] {
         gap: 14px;
     }
 
-    /* прячем десктопный инпут */
     .searchbox.searchbox--inline {
         display: none;
     }
 
-    /* показываем иконку поиска */
     .search-toggle {
         display: inline-flex;
     }
 
-    /* поповер поиска */
     .search-popover {
         position: absolute;
         right: 12px;
@@ -637,7 +612,6 @@ html[data-theme='light'] {
     height: 100%;
 }
 
-/* sticky header of weekdays (under main header) */
 .week-header {
     padding-top: 10px;
     display: grid;
@@ -669,12 +643,11 @@ html[data-theme='light'] {
     line-height: 1;
 }
 
-/* WEEK VIEW base */
 .week-grid {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
-    background: var(--bg); /* было debug-красным */
+    background: var(--bg);
     display: grid;
     grid-template-columns: 70px repeat(7, 1fr);
     gap: 0;
@@ -685,7 +658,6 @@ html[data-theme='light'] {
     position: relative;
 }
 
-/* левая колонка времени */
 .time-col {
     display: grid;
     grid-template-rows: repeat(48, var(--slot-h));
@@ -705,25 +677,22 @@ html[data-theme='light'] {
     justify-content: center;
 }
 
-/* столбец дня: сетка по 30 мин */
 .day-col {
     position: relative;
     display: grid;
     grid-template-rows: repeat(48, var(--slot-h));
-    padding: 0; /* важно для ровных капсул */
+    padding: 0;
 }
 
-/* КАПСУЛЫ (пустые слоты) */
 .day-col .slot {
-    margin: 3px; /* зазор как на макете */
-    border-radius: 12px; /* форма капсулы */
-    background: var(--bg-theme); /* заполнитель слота */
+    margin: 3px;
+    border-radius: 12px;
+    background: var(--bg-theme);
     cursor: pointer;
 }
 .day-col .slot:hover {
     background: var(--hover-theme);
 }
-/* события поверх слотов */
 
 .day-col .event {
     position: absolute;
@@ -733,8 +702,8 @@ html[data-theme='light'] {
     border: 1px solid #e2c7ff;
     font-size: 12px;
     display: flex;
-    flex-direction: column; /* ✅ добавь */
-    align-items: flex-start; /* ✅ чтобы текст слева */
+    flex-direction: column;
+    align-items: flex-start;
     box-shadow: var(--shadow-card);
     z-index: 2;
     box-sizing: border-box;
@@ -757,17 +726,12 @@ html[data-theme='light'] {
     font-weight: 600;
     font-size: 14px;
     margin-top: 6px;
-
-    /* текст внутри, не вылазит */
     overflow: hidden;
-
-    /* перенос по словам и по очень длинным “словам” */
     white-space: normal;
     word-wrap: break-word;
     word-break: break-word;
     overflow-wrap: anywhere;
 
-    /* максимум 2 строки, дальше обрезаем (браузеры на WebKit/Chromium) */
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -795,7 +759,6 @@ html[data-theme='light'] {
     color: var(--holiday-bg);
 }
 
-/* попап события (как на макете, сбоку от ивента) */
 .week-grid .event-popover {
     position: absolute;
     z-index: 5;
@@ -812,7 +775,6 @@ html[data-theme='light'] {
     overflow-wrap: anywhere;
 }
 
-/* чтобы текст внутри никогда не вылазил */
 .event-popover .ep-desc,
 .event-popover .ep-meta-row .value {
     white-space: normal;
@@ -820,7 +782,6 @@ html[data-theme='light'] {
     overflow-wrap: anywhere;
 }
 
-/* верхняя строка */
 .event-popover .ep-head {
     display: flex;
     justify-content: space-between;
@@ -885,7 +846,6 @@ html[data-theme='light'] {
     margin-bottom: 2px;
     font-weight: 600;
 }
-/* owner / members + маленький delete справа */
 .event-popover .ep-meta {
     display: flex;
     justify-content: space-between;
@@ -1048,7 +1008,6 @@ html[data-theme='light'] {
 /* WEEK VIEW — mobile list layout (<=768px)                                   */
 /* ========================================================================== */
 @media (max-width: 768px) {
-    /* десктопная сетка прячется */
     .week-header,
     .week-grid {
         display: none;
@@ -1167,12 +1126,10 @@ html[data-theme='light'] {
         max-height: 85vh;
         overflow-y: auto;
     }
-    /* праздничные таблетки в мобильном WeekView */
     .week-mobile-holiday-row {
         margin-top: 6px;
     }
 
-    /* скрываем текст времени, но оставляем ширину для выравнивания */
     .week-mobile-holiday-time {
         visibility: hidden;
     }
@@ -1200,10 +1157,9 @@ html[data-theme='light'] {
     background: var(--bg);
 }
 
-/* единая шапка Mon..Sun */
 .month-weekdays {
     position: sticky;
-    top: 0; /* прилипает под навигацией */
+    top: 0;
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 20px;
@@ -1231,7 +1187,7 @@ html[data-theme='light'] {
     position: relative;
     background: var(--bg-theme);
     border-radius: 12px;
-    padding: 6px 8px 40px; /* ← снизу побольше место */
+    padding: 6px 8px 40px;
     cursor: pointer;
     box-sizing: border-box;
 }
@@ -1240,11 +1196,10 @@ html[data-theme='light'] {
     background: var(--hover-theme);
 }
 
-/* Паддинговые ячейки (дни не из текущего месяца) */
 .month-cell.pad {
     background: var(--hover-theme);
     opacity: 0.3;
-    pointer-events: none; /* чтобы не ловили двойной клик */
+    pointer-events: none;
 }
 .month-cell.pad .cell-date {
     visibility: hidden;
@@ -1276,9 +1231,6 @@ html[data-theme='light'] {
 .cell-holiday-icon {
     transform: translateY(-3px);
     flex: 0 0 20px;
-    /* width: 25px; */
-    /* height: auto; */
-    /* border-radius: 9999px; */
     display: flex;
     align-items: self-start;
     justify-content: center;
@@ -1291,16 +1243,14 @@ html[data-theme='light'] {
     object-fit: contain;
 }
 
-/* текст рядом с иконкой */
 .cell-holiday-text {
     flex: 1 1 auto;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-/* Цвет текста на праздничном дне */
 .month-cell.holiday-day .cell-holiday-label {
-    color: #ffffff; /* тот же, что и для числа на holiday */
+    color: #ffffff;
 }
 
 .cell-date {
@@ -1312,19 +1262,17 @@ html[data-theme='light'] {
     padding: 10px;
     font-size: 18px;
 }
-/* числа именно активного (текущего в хедере) месяца */
 .month-block.is-active .cell-date.cur {
-    color: var(--text-theme); /* светлый текст из темы */
+    color: var(--text-theme);
     font-weight: 700;
     opacity: 1;
 }
 
 .cell-date.today {
-    /* перекрываем базовые отступы, чтобы сделать круг */
     padding: 0;
     width: 28px;
     height: 28px;
-    right: 10px; /* как у тебя в .cell-date */
+    right: 10px;
     top: 8px;
 
     display: flex;
@@ -1364,7 +1312,6 @@ html[data-theme='light'] {
     border: 1px solid transparent;
     box-sizing: border-box;
 }
-/* иконка слева (для стандартных категорий) */
 .pill-icon {
     flex: 0 0 18px;
     width: 20px;
@@ -1379,7 +1326,6 @@ html[data-theme='light'] {
     height: auto;
 }
 
-/* текст, обрезается троеточием */
 .pill-label {
     flex: 1 1 auto;
     overflow: hidden;
@@ -1405,7 +1351,6 @@ html[data-theme='light'] {
     background: var(--bg);
 }
 
-/* Year view rows: 4 колонки, аккуратные зазоры */
 .year-row {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1434,15 +1379,13 @@ html[data-theme='light'] {
 }
 @media (max-width: 600px) {
     .year-cell {
-        font-size: 28px; /* было 45px */
-        padding: 45px 0; /* можно чуть меньше, чтобы всё влезало */
+        font-size: 28px;
+        padding: 45px 0;
     }
 }
 /* ==========================================================================
    Misc
    ========================================================================== */
-
-/* ===== Week picker popover ===== */
 
 .weekpicker-popover {
     position: absolute;
@@ -1561,7 +1504,6 @@ html[data-theme='light'] {
     overflow: hidden;
 }
 
-/* левая часть */
 .event-modal-left {
     padding: 26px 24px;
     display: flex;
@@ -1621,7 +1563,6 @@ html[data-theme='light'] {
     color: var(--text);
 }
 
-/* правая часть */
 .event-modal-right {
     padding: 20px 22px 18px;
     display: flex;
@@ -1699,7 +1640,6 @@ html[data-theme='light'] {
 }
 
 /* ========================================================================== */
-/* категории в модалке new event */
 
 .em-cat-chips {
     display: flex;
@@ -1741,8 +1681,6 @@ html[data-theme='light'] {
     background: var(--cat-color, #c5bdf0);
 }
 
-/* блок новой категории */
-
 .em-cat-new-wrap {
     position: relative;
     margin-top: 8px;
@@ -1774,8 +1712,6 @@ html[data-theme='light'] {
     font-size: 14px;
     font-family: 'League Spartan', system-ui, sans-serif;
 }
-
-/* поповер с цветами */
 
 .em-cat-color-pop {
     position: absolute;

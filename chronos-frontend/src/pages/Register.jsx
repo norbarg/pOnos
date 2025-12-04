@@ -1,4 +1,3 @@
-// chronos-frontend/src/pages/Register.jsx
 import { useDispatch, useSelector } from 'react-redux';
 import {
     register as registerThunk,
@@ -193,7 +192,7 @@ export default function Register() {
                             )}
 
                             <div className="auth__divider">
-                            <span>Or</span>
+                                <span>Or</span>
                             </div>
 
                             <p className="muted">

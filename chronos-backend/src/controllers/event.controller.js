@@ -1,4 +1,3 @@
-// chronos-backend/src/controllers/event.controller.js
 import mongoose from 'mongoose';
 import rrulePkg from 'rrule';
 import User from '../models/User.js';
@@ -14,7 +13,6 @@ import EventInvitation from '../models/EventInvitation.js';
 
 const { RRule } = rrulePkg;
 
-/* helpers */
 function parseISO(s) {
     const d = new Date(s);
     if (isNaN(d)) throw new Error('invalid date');
@@ -55,7 +53,6 @@ function canManage(ev, uid, calOfEvent) {
     return isOwner || isCalOwner;
 }
 
-/* CREATE */
 export async function createEvent(req, res) {
     try {
         const uid = req.user.id;
@@ -124,8 +121,6 @@ export async function createEvent(req, res) {
     }
 }
 
-/* LIST (by calendar) + filters & expand */
-// 7) обычный (не развернутый) режим
 export async function listCalendarEvents(req, res) {
     const uid = req.user.id;
     const { calId } = req.params;
@@ -143,10 +138,8 @@ export async function listCalendarEvents(req, res) {
 
     const baseQuery = {
         $or: [
-            // 1) события, у которых "родной" календарь = этот
             { calendar: cal._id },
 
-            // 2) события, размещённые в этом календаре для ТЕКУЩЕГО пользователя
             {
                 'placements.calendar': cal._id,
                 'placements.user': uid,
@@ -258,7 +251,6 @@ export async function listCalendarEvents(req, res) {
     return res.json({ events });
 }
 
-/* READ */
 export async function getEvent(req, res) {
     const e = req.event;
     const cal = await Calendar.findById(e.calendar).lean();
@@ -294,7 +286,6 @@ export async function getEvent(req, res) {
     return res.json({ event: sanitizeEvent(e, catMap) });
 }
 
-/* UPDATE */
 export async function updateEvent(req, res) {
     const e = req.event;
     const uid = req.user.id;
@@ -358,7 +349,6 @@ export async function updateEvent(req, res) {
     return res.json({ event: sanitizeEvent(updated) });
 }
 
-/* DELETE (with cascade) */
 export async function deleteEvent(req, res) {
     const e = req.event;
     const uid = req.user.id;
@@ -367,16 +357,13 @@ export async function deleteEvent(req, res) {
         String(e.owner) === uid || (cal && String(cal.owner) === uid);
     if (!canDelete) return res.status(403).json({ error: 'forbidden' });
 
-    // каскад: чистим инвайты события
     await EventInvitation.deleteMany({ event: e._id });
 
-    // само событие
     await Event.deleteOne({ _id: e._id });
 
     return res.json({ ok: true });
 }
 
-/* PARTICIPANTS & PLACEMENTS */
 export async function listParticipants(req, res) {
     const ev = req.event;
     const uid = req.user.id;
@@ -396,7 +383,7 @@ export async function listParticipants(req, res) {
         return res.status(403).json({ error: 'forbidden' });
     }
 
-    const canManageFlag = canManage(ev, uid, cal); // ← кто может редактировать/удалять
+    const canManageFlag = canManage(ev, uid, cal);
 
     const ids = [String(ev.owner), ...ev.participants.map(String)];
     const users = await User.find({ _id: { $in: ids } })
@@ -421,7 +408,6 @@ export async function listParticipants(req, res) {
     });
 }
 
-/** Добавить участника (owner/owner-calendar) */
 export async function addParticipant(req, res) {
     const ev = req.event;
     const uid = req.user.id;
@@ -514,7 +500,6 @@ export async function removeParticipant(req, res) {
     return res.json({ ok: true });
 }
 
-/** Участник: выбрать свой календарь для размещения */
 export async function setMyPlacement(req, res) {
     const ev = req.event;
     const uid = req.user.id;
@@ -550,7 +535,6 @@ export async function setMyPlacement(req, res) {
     return res.json({ ok: true });
 }
 
-/** Участник: покинуть событие */
 export async function leaveEvent(req, res) {
     const ev = req.event;
     const uid = req.user.id;
@@ -572,7 +556,6 @@ export async function leaveEvent(req, res) {
     return res.json({ ok: true });
 }
 
-/* === INVITES BY EMAIL (EVENT) === */
 export async function inviteByEmail(req, res) {
     try {
         const ev = req.event;
@@ -598,24 +581,17 @@ export async function inviteByEmail(req, res) {
         let mode = 'email';
         let targetUser = null;
 
-        // 🔹 если это НЕ email — считаем, что это ник / имя
         if (!emailRe.test(targetEmail)) {
             const lookup = raw.toLowerCase();
 
             targetUser = await User.findOne({
-                $or: [
-                    { email: lookup }, // вдруг ввели именно email, но без регистра
-                    { name: raw }, // точное совпадение name
-                    // если у тебя есть username, раскомментируй:
-                    // { username: raw },
-                ],
+                $or: [{ email: lookup }, { name: raw }],
             }).lean();
 
             if (!targetUser) {
                 return res.status(404).json({ error: 'user-not-found' });
             }
 
-            // берём настоящий email из юзера
             targetEmail = String(targetUser.email || '').toLowerCase();
             if (!targetEmail) {
                 return res.status(400).json({ error: 'user-has-no-email' });
@@ -624,7 +600,6 @@ export async function inviteByEmail(req, res) {
             mode = 'user';
         }
 
-        // 🔹 тут ВСЕГДА создаём e-mail-инвайт (и отправляем письмо)
         const inv = await createEventInvite({
             eventId: ev._id.toString(),
             inviterId: uid,
@@ -633,7 +608,7 @@ export async function inviteByEmail(req, res) {
 
         return res.json({
             ok: true,
-            mode, // 'email' или 'user'
+            mode,
             user: targetUser
                 ? {
                       id: targetUser._id.toString(),

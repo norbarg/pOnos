@@ -1,8 +1,7 @@
-// chronos-frontend/src/pages/EventPage.jsx
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../api/axios';
-import Calendars from './Calendars'; // фон сзади – календарь
+import Calendars from './Calendars';
 import '../styles/Calendar.css';
 
 const CAL_RESET_FLAG = 'calendar:_reset_on_enter';
@@ -14,7 +13,7 @@ function formatDateInput(d) {
     return `${y}-${m}-${day}`;
 }
 function todayISO() {
-    return formatDateInput(new Date()); // локальная сегодняшняя дата
+    return formatDateInput(new Date());
 }
 function pad2(n) {
     return String(n).padStart(2, '0');
@@ -35,7 +34,6 @@ function slugify(s) {
         .replace(/[^a-z0-9-]/g, '');
 }
 
-// варианты повторения -> RRULE
 const REPEAT_RRULE = {
     daily: 'FREQ=DAILY',
     weekly: 'FREQ=WEEKLY',
@@ -43,7 +41,6 @@ const REPEAT_RRULE = {
     '2months': 'FREQ=MONTHLY;INTERVAL=2',
 };
 
-// пресеты цветов для новой категории
 const COLOR_PRESETS = ['#C5BDF0', '#96C0BE', '#D65050', '#F9F06C', '#59DAEB'];
 
 export default function NewEventPage() {
@@ -66,14 +63,12 @@ export default function NewEventPage() {
     const [categoryId, setCategoryId] = useState('');
     const [repeat, setRepeat] = useState('none');
 
-    // новая категория
     const [newCatTitle, setNewCatTitle] = useState('');
     const [newCatColor, setNewCatColor] = useState(COLOR_PRESETS[0]);
     const [colorPickerOpen, setColorPickerOpen] = useState(false);
     const [pendingDelCat, setPendingDelCat] = useState(null);
     const colorWrapRef = useRef(null);
 
-    // если нас привели с calId / датой
     const preselectCalId = useMemo(
         () => location.state?.calId ?? null,
         [location.state]
@@ -83,13 +78,10 @@ export default function NewEventPage() {
         [location.state]
     );
 
-    // подхватить дату из state, если есть
-    // подхватить только дату из state.date, если нет slotStart
     useEffect(() => {
         const st = location.state;
         if (!st) return;
 
-        // если есть slotStart — он главнее, тут ничего не делаем
         if (st.slotStart) return;
 
         const preselectDate = st.date;
@@ -104,7 +96,6 @@ export default function NewEventPage() {
             }
         }
     }, [location.state]);
-    // если пришёл slotStart (клик по ячейке недели) — ставим дату и время
     useEffect(() => {
         const st = location.state;
         if (!st?.slotStart) return;
@@ -112,20 +103,16 @@ export default function NewEventPage() {
         const d = new Date(st.slotStart);
         if (Number.isNaN(d.getTime())) return;
 
-        // дата
         setDate(formatDateInput(d));
 
-        // время старта
         const h = d.getHours();
         const m = d.getMinutes();
         setStartTime(`${pad2(h)}:${pad2(m)}`);
 
-        // конец через 30 минут
         const end = new Date(d.getTime() + 30 * 60 * 1000);
         setEndTime(`${pad2(end.getHours())}:${pad2(end.getMinutes())}`);
     }, [location.state]);
 
-    // click-away для поповера выбора цвета
     useEffect(() => {
         if (!colorPickerOpen) return;
         const onDown = (e) => {
@@ -138,7 +125,6 @@ export default function NewEventPage() {
         return () => document.removeEventListener('pointerdown', onDown, true);
     }, [colorPickerOpen]);
 
-    // подгружаем календари/категории
     useEffect(() => {
         (async () => {
             try {
@@ -153,7 +139,6 @@ export default function NewEventPage() {
 
                 const rawCals = calsData?.calendars || [];
 
-                // ❌ убираем системный календарь праздников из списка для выбора
                 const userCals = rawCals.filter(
                     (c) => !(c.isSystem && c.systemType === 'holidays')
                 );
@@ -161,7 +146,6 @@ export default function NewEventPage() {
 
                 const catsRaw = catsData?.categories ?? catsData ?? [];
 
-                // ❌ убираем системную категорию Holiday
                 const catsList = catsRaw.filter((c) => {
                     const builtIn = (c.builtInKey || c.key || '').toLowerCase();
                     if (builtIn === 'holiday') return false;
@@ -246,7 +230,6 @@ export default function NewEventPage() {
                 return;
             }
 
-            // 1) определяем категорию: выбранная или новая
             let finalCategoryId = categoryId;
 
             if (!finalCategoryId) {
@@ -261,7 +244,6 @@ export default function NewEventPage() {
                     const createdId = created.id ?? created._id;
                     finalCategoryId = createdId;
 
-                    // добавим в локальный список, чтобы потом можно было переиспользовать
                     setCategories((prev) => [
                         ...prev,
                         {
@@ -291,7 +273,6 @@ export default function NewEventPage() {
             }
             async function exceedsThreeOverlaps(calendarId, startISO, endISO) {
                 try {
-                    // границы дня по локальному времени
                     const dayStart = new Date(startISO);
                     dayStart.setHours(0, 0, 0, 0);
                     const dayEnd = new Date(startISO);
@@ -323,15 +304,12 @@ export default function NewEventPage() {
                         points.push({ t: e.getTime(), delta: -1 });
                     }
 
-                    // добавляем наш новый ивент
                     points.push({ t: startISO.getTime(), delta: +1 });
                     points.push({ t: endISO.getTime(), delta: -1 });
 
-                    // 🔧 ГЛАВНОЕ ИЗМЕНЕНИЕ:
-                    // при равном времени сначала обрабатываем end (-1), потом start (+1)
                     points.sort((a, b) => {
                         if (a.t !== b.t) return a.t - b.t;
-                        return a.delta - b.delta; // -1 перед +1
+                        return a.delta - b.delta;
                     });
 
                     let cur = 0;
@@ -397,19 +375,16 @@ export default function NewEventPage() {
             const { data } = await api.delete(`/categories/${catId}`);
             const deleted = data?.deletedEvents ?? 0;
 
-            // убираем из списка
             setCategories((prev) =>
                 prev.filter((c) => String(c.id ?? c._id) !== String(catId))
             );
 
-            // если она была выбрана – сбрасываем
             if (String(categoryId) === String(catId)) {
                 setCategoryId('');
             }
 
             setPendingDelCat(null);
 
-            // аккуратное инфо-сообщение (не ошибка)
             setMessage(
                 `Category "${catTitle}" deleted. Removed events: ${deleted}.`
             );
@@ -434,13 +409,10 @@ export default function NewEventPage() {
 
     return (
         <>
-            {/* фон – календарь как обычно */}
             <Calendars />
 
-            {/* поверх него фиксированная модалка */}
             <div className="event-modal-overlay">
                 <div className="event-modal">
-                    {/* Левая колонка */}
                     <div className="event-modal-left">
                         <div className="event-modal-title-line">
                             <span className="em-label">New event</span>
@@ -453,7 +425,6 @@ export default function NewEventPage() {
                             />
                         </div>
 
-                        {/* просто текстовая область без рамок */}
                         <form onSubmit={handleSubmit}>
                             <textarea
                                 className="em-input-desc"
@@ -464,7 +435,6 @@ export default function NewEventPage() {
                         </form>
                     </div>
 
-                    {/* Правая колонка */}
                     <div className="event-modal-right">
                         {loading && <p className="muted">Loading…</p>}
 
@@ -504,11 +474,9 @@ export default function NewEventPage() {
                                     </div>
                                 </div>
 
-                                {/* КАТЕГОРИИ: выбор существующей + добавление своей */}
                                 <div className="em-field">
                                     <label>Choose category or add yours</label>
 
-                                    {/* существующие категории как таблеточки */}
                                     <div className="em-cat-chips">
                                         {categories.map((c) => {
                                             const id = c.id ?? c._id;
@@ -517,7 +485,7 @@ export default function NewEventPage() {
                                                 String(categoryId);
                                             const color = c.color || '#C5BDF0';
                                             const catTitle =
-                                                c.title ?? c.name ?? 'Category'; // 👈 название категории
+                                                c.title ?? c.name ?? 'Category';
 
                                             return (
                                                 <button
@@ -551,7 +519,7 @@ export default function NewEventPage() {
                                                                 askDeleteCategory(
                                                                     id,
                                                                     catTitle
-                                                                ); // 👈 передаём имя категории
+                                                                );
                                                             }}
                                                         >
                                                             ✕
@@ -562,7 +530,6 @@ export default function NewEventPage() {
                                         })}
                                     </div>
 
-                                    {/* новая категория */}
                                     <div
                                         className="em-cat-new-wrap"
                                         ref={colorWrapRef}
@@ -576,7 +543,6 @@ export default function NewEventPage() {
                                                     setNewCatTitle(
                                                         e.target.value
                                                     );
-                                                    // если юзер вводит свою категорию — снимаем выбор старой
                                                     if (e.target.value.trim()) {
                                                         setCategoryId('');
                                                     }
@@ -597,7 +563,6 @@ export default function NewEventPage() {
                                                 aria-label="Choose color"
                                             />
                                         </div>
-                                        {/* предупреждение перед удалением категории */}
                                         {pendingDelCat && (
                                             <div className="em-cat-delete-confirm">
                                                 <div className="em-cat-delete-text">

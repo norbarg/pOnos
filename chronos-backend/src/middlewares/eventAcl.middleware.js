@@ -1,4 +1,3 @@
-// middlewares/eventAcl.middleware.js
 import mongoose from 'mongoose';
 import Event from '../models/Event.js';
 import Calendar from '../models/Calendar.js';
@@ -14,7 +13,7 @@ export async function loadEvent(req, res, next) {
 }
 
 export async function canAccessCalendar(req, res, next) {
-    const calId = req.params.calId || req.params.id; // зависит от роута
+    const calId = req.params.calId || req.params.id;
     if (!mongoose.isValidObjectId(calId))
         return res.status(400).json({ error: 'invalid calendar id' });
 
@@ -42,8 +41,7 @@ export function canEditEvent(req, res, next) {
     const uid = req.user.id;
     const isOwner = String(ev.owner) === uid;
 
-    // владелец календаря тоже может редактировать
-    const cal = req.calendarLoaded || null; // если до этого грузили
+    const cal = req.calendarLoaded || null;
     const isCalOwner = cal ? String(cal.owner) === uid : false;
 
     if (!isOwner && !isCalOwner)

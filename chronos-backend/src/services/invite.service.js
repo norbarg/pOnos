@@ -1,4 +1,3 @@
-// invite.service.js
 import crypto from 'crypto';
 import Invitation from '../models/Invitation.js';
 import Calendar from '../models/Calendar.js';
@@ -78,7 +77,6 @@ export async function acceptInviteByToken({ userId, userEmail, token }) {
         throw new Error('email mismatch');
     }
 
-    // ✅ добавляем участника и роль в актуальную модель
     const set = {};
     set[`memberRoles.${userId}`] = inv.role;
     set[`notifyActive.${userId}`] = true;
@@ -96,7 +94,6 @@ export async function acceptInviteByToken({ userId, userEmail, token }) {
     return inv;
 }
 
-// автоподцепление висящих инвайтов на регистрацию
 export async function attachPendingInvitesForEmail({ userId, email }) {
     const now = new Date();
     const pendings = await Invitation.find({

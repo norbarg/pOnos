@@ -1,4 +1,3 @@
-// chronos-backend/src/routes/calendar.routes.js
 import { Router } from 'express';
 import { requireAuth } from '../middlewares/auth.middleware.js';
 import {
@@ -38,11 +37,9 @@ router.get('/:id', loadCalendar, canAccessCalendar, getCalendar);
 router.put('/:id', loadCalendar, isCalendarOwnerOrEditor, updateCalendar);
 router.delete('/:id', loadCalendar, isCalendarOwner, deleteCalendar);
 
-// Персональный статус уведомлений (для текущего пользователя)
 router.get('/:id/status', loadCalendar, canAccessCalendar, getCalendarStatus);
 router.patch('/:id/status', loadCalendar, canAccessCalendar, setCalendarStatus);
 
-// Шаринг
 router.post('/:id/share', loadCalendar, isCalendarOwner, shareCalendar);
 router.get('/:id/members', loadCalendar, canAccessCalendar, listMembers);
 router.patch(
@@ -58,7 +55,6 @@ router.delete(
     removeMember
 );
 
-// Инвайты (owner-only)
 router.get('/:id/invites', loadCalendar, isCalendarOwner, listCalendarInvites);
 router.post(
     '/:id/invites/:inviteId/resend',
@@ -73,7 +69,6 @@ router.delete(
     revokeCalendarInvite
 );
 
-// Выйти из календаря
 router.post('/:id/leave', loadCalendar, canAccessCalendar, leaveCalendar);
 
 export default router;

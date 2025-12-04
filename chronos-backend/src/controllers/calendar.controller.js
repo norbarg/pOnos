@@ -12,7 +12,6 @@ import {
 
 const ObjectId = (v) => new mongoose.Types.ObjectId(v);
 
-// ----- helpers -----
 function rolesMapFrom(cal) {
     return cal.memberRoles instanceof Map
         ? cal.memberRoles
@@ -83,7 +82,6 @@ function assertMutableCalendar(cal) {
     }
 }
 
-// ===== CRUD =====
 export async function listMyCalendars(req, res) {
     const uid = req.user.id;
     const calendars = await Calendar.find({
@@ -167,7 +165,6 @@ export async function deleteCalendar(req, res) {
         }
         assertMutableCalendar(cal);
 
-        // каскад: удалить все события этого календаря + их инвайты
         const evIds = (
             await Event.find({ calendar: cal._id }).select({ _id: 1 }).lean()
         ).map((e) => e._id);
@@ -177,16 +174,13 @@ export async function deleteCalendar(req, res) {
             await Event.deleteMany({ _id: { $in: evIds } });
         }
 
-        // каскад: удалить инвайты на сам календарь
         await Invitation.deleteMany({ calendar: cal._id });
 
-        // зачистить placements с этим календарём у чужих событий
         await Event.updateMany(
             { 'placements.calendar': cal._id },
             { $pull: { placements: { calendar: cal._id } } }
         );
 
-        // сам календарь
         await Calendar.deleteOne({ _id: cal._id });
 
         return res.json({ ok: true });
@@ -201,7 +195,6 @@ export async function deleteCalendar(req, res) {
 
 const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-// ===== Sharing & Members =====
 export async function shareCalendar(req, res) {
     try {
         const uid = req.user.id;
@@ -210,7 +203,6 @@ export async function shareCalendar(req, res) {
 
         let { email, role } = req.body || {};
 
-        // 🔹 если пришел объект { email, address, value, name } — достаем строку
         if (email && typeof email === 'object') {
             email = email.email || email.address || email.value || null;
         }
@@ -229,13 +221,10 @@ export async function shareCalendar(req, res) {
         let targetEmail = null;
         let targetUser = null;
 
-        // 1) Если похоже на email — используем как есть (как раньше)
         if (EMAIL_RE.test(identifier.toLowerCase())) {
             targetEmail = identifier.toLowerCase();
             targetUser = await User.findOne({ email: targetEmail }).lean();
         } else {
-            // 2) Иначе считаем, что это ник/имя пользователя
-            //    ищем по username или name (регистронезависимо)
             const rx = new RegExp('^' + escapeRegex(identifier) + '$', 'i');
             targetUser = await User.findOne({
                 $or: [{ username: rx }, { name: rx }],
@@ -251,7 +240,6 @@ export async function shareCalendar(req, res) {
             targetEmail = String(targetUser.email).toLowerCase();
         }
 
-        // на этом этапе у нас всегда есть targetEmail
         email = targetEmail;
 
         role = role === 'editor' ? 'editor' : 'member';
@@ -261,7 +249,6 @@ export async function shareCalendar(req, res) {
             return res.status(400).json({ error: 'cannot-invite-yourself' });
         }
 
-        // если юзер с таким email уже существует — проверяем, не в календаре ли он
         const existingUser =
             targetUser || (await User.findOne({ email }).lean());
 
@@ -335,7 +322,7 @@ export async function listMembers(req, res) {
         email: owner.email,
         name: owner.name,
         role: 'owner',
-        avatar: owner.avatar || null, // 👈 добавили
+        avatar: owner.avatar || null,
     };
 
     const membersDto = members.map((m) => {
@@ -346,7 +333,7 @@ export async function listMembers(req, res) {
             email: m.email,
             name: m.name,
             role,
-            avatar: m.avatar || null, // 👈 добавили
+            avatar: m.avatar || null,
         };
     });
 
@@ -446,7 +433,6 @@ export async function leaveCalendar(req, res) {
     }
 }
 
-// ===== Invites (owner-only в роутере) =====
 export async function listCalendarInvites(req, res) {
     const uid = req.user.id;
     const cal = req.calendar;
