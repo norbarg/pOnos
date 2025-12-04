@@ -1,0 +1,57 @@
+version: '3.9'
+
+services:
+    mongo:
+        image: mongo:7
+        container_name: chronos-mongo
+        restart: unless-stopped
+        ports:
+            - '27017:27017' # чтобы можно было подключиться локально при желании
+        environment:
+            # под это мы подстроим MONGO_URI
+            MONGO_INITDB_ROOT_USERNAME: root
+            MONGO_INITDB_ROOT_PASSWORD: example
+            MONGO_INITDB_DATABASE: chronos
+        volumes:
+            - mongo-data:/data/db
+
+    backend:
+        build:
+            context: ./chronos-backend
+            dockerfile: Dockerfile
+        container_name: chronos-backend
+        restart: unless-stopped
+        depends_on:
+            - mongo
+        env_file:
+            - ./chronos-backend/.env
+        environment:
+            # ПЕРЕПИСЫВАЕМ MONGO_URI из .env, чтобы ходить в контейнер mongo, а не на localhost
+            MONGO_URI: mongodb://root:example@mongo:27017/chronos?authSource=admin
+
+            # CORS — фронт у нас будет на http://localhost:5173
+            FRONTEND_ORIGIN: http://localhost:5173
+
+            # На всякий случай режим
+            NODE_ENV: production
+        ports:
+            - '8000:8000'
+
+    frontend:
+        build:
+            context: ./chronos-frontend
+            dockerfile: Dockerfile
+        container_name: chronos-frontend
+        restart: unless-stopped
+        depends_on:
+            - backend
+        env_file:
+            - ./chronos-frontend/.env
+        environment:
+            # В браузере фронт должен ходить на backend по localhost:8000
+            VITE_API_ORIGIN: http://localhost:8000
+        ports:
+            - '5173:5173'
+
+volumes:
+    mongo-data:
