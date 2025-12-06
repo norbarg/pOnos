@@ -1,4 +1,4 @@
-# Chronos — Collaborative Calendar (Timely)
+# Chronos — Collaborative Calendar (Timely).
 
 Chronos is a collaborative calendar application that lets users:
 
