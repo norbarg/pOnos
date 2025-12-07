@@ -1,3 +1,4 @@
+// chronos-backend/src/services/eventReminder.service.js
 import rrulePkg from 'rrule';
 import mongoose from 'mongoose';
 import Event from '../models/Event.js';
@@ -238,6 +239,28 @@ function* makeWindows(now) {
         to: new Date(now.getTime() + width * 1000),
     };
 }
+function buildRRuleForEvent(ev) {
+    try {
+        const opts = RRule.parseString(ev.recurrence.rrule);
+
+        // привязываем правило к реальному старту события
+        opts.dtstart = new Date(ev.start);
+
+        // если в recurrence.until есть дата – тоже прокидываем
+        if (ev.recurrence.until) {
+            opts.until = new Date(ev.recurrence.until);
+        }
+
+        return new RRule(opts);
+    } catch (e) {
+        console.error(
+            '[reminder] invalid rrule for event',
+            ev._id?.toString?.() || ev._id,
+            e?.message || e
+        );
+        return null;
+    }
+}
 
 function expandOccurrences(ev, from, to, mode = 'start') {
     const dur = new Date(ev.end) - new Date(ev.start) || 0;
@@ -250,16 +273,14 @@ function expandOccurrences(ev, from, to, mode = 'start') {
     }
 
     if (ev.recurrence && ev.recurrence.rrule) {
-        try {
-            const rule = RRule.fromString(ev.recurrence.rrule);
-            const dates = rule.between(fromAdj, toAdj, true);
-            return dates.map((dt) => ({
-                start: dt,
-                end: new Date(dt.getTime() + dur),
-            }));
-        } catch {
-            return [];
-        }
+        const rule = buildRRuleForEvent(ev);
+        if (!rule) return [];
+
+        const dates = rule.between(fromAdj, toAdj, true);
+        return dates.map((dt) => ({
+            start: dt,
+            end: new Date(dt.getTime() + dur),
+        }));
     }
 
     if (mode === 'start') {

@@ -1,3 +1,4 @@
+// chronos-backend/src/controllers/event.controller.js
 import mongoose from 'mongoose';
 import rrulePkg from 'rrule';
 import User from '../models/User.js';
